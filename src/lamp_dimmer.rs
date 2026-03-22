@@ -1,227 +1,218 @@
-use crate::pulse_scheduler;
+use crate::pulse_scheduler::{PulseScheduler, RefPulseScheduler};
 use crate::rolling_average::TimeRollingAverage;
 
 use core::option::Option;
 use core::option::Option::{None, Some};
 
-use core::cell::{Cell, RefCell};
-use core::sync::atomic::AtomicU32;
+use core::cell::{Cell, Ref, RefCell};
+use core::slice::RChunks;
 use critical_section::{CriticalSection, Mutex};
-use esp_hal::gpio::Level;
-use esp_hal::gpio::{Input, Output};
+use esp_hal::gpio::Input;
 use esp_hal::handler;
 use esp_hal::interrupt::Priority;
 use esp_hal::pcnt::channel::EdgeMode;
 use esp_hal::pcnt::{Pcnt, unit};
 use esp_hal::time::{Duration, Instant};
-use esp_hal::timer::{AnyTimer, Timer};
 use log::info;
 
-// Timing averages
-static AVG_TIME_HIGH: Mutex<RefCell<TimeRollingAverage<25>>> =
-    Mutex::new(RefCell::new(TimeRollingAverage::new()));
-static AVG_TIME_LOW: Mutex<RefCell<TimeRollingAverage<25>>> =
-    Mutex::new(RefCell::new(TimeRollingAverage::new()));
-static LAST_EDGE: Mutex<Cell<Option<Instant>>> = Mutex::new(Cell::new(None));
+extern crate alloc;
+use alloc::sync::Arc;
 
-static DIMMING_REQUEST: Mutex<Cell<Option<Instant>>> = Mutex::new(Cell::new(None));
+const END_WAVE_LENGTH_MARGIN: f64 = 0.20;
+const START_WAVE_LENGTH_MARGIN: f64 = 0.10;
 
-static EVENT_COUNT: AtomicU32 = AtomicU32::new(0);
+const fn fire_angle_loopup_micros<const N: usize>(frequency: u64) -> [u64; N] {
+    let mut lookup_table: [u64; N] = [0; N];
+    let wave_us: u64 = 1_000_000 / (frequency * 2 as u64);
 
-// Inital brightness of 0.0
-// Fixed point
-static BRIGHTNESS: Mutex<Cell<u16>> = Mutex::new(Cell::new(0));
+    let mut i = 0;
+    while i < N {
+        let reserved_start_us = ((wave_us as f64) * START_WAVE_LENGTH_MARGIN) as u64;
+        let reserved_end_us = ((wave_us as f64) * END_WAVE_LENGTH_MARGIN) as u64;
 
-/////////////////////////
-/// HARDWARE POINTERS ///
-/////////////////////////
+        let brightness = (i as f64) / (N as f64);
+        let corrected_brightness = brightness * brightness;
+        let trigger_wave_us = wave_us - reserved_end_us - reserved_start_us;
+        let trigger_us = (trigger_wave_us as f64 * (1.0 - corrected_brightness)) as u64;
 
-// Currently used PCNT Unit
-pub static PCNT_UNIT_NUMBER: usize = 0;
-type Unit = unit::Unit<'static, PCNT_UNIT_NUMBER>;
-static UNIT: Mutex<RefCell<Option<Unit>>> = Mutex::new(RefCell::new(None));
-
-fn handle_dimming(next_zero_cross: Instant) {
-    let (average_high, average_low, brightness) = critical_section::with(|cs| {
-        (
-            AVG_TIME_HIGH.borrow_ref(cs).average(),
-            AVG_TIME_LOW.borrow_ref(cs).average(),
-            BRIGHTNESS.borrow(cs).get(),
-        )
-    });
-    let average_wavelength = average_low + average_high;
-
-    // Latching time is about 1/5th the wave length after zero cross
-    // Makes sure triac is fired
-    let latching_time = average_wavelength / 2;
-
-    const MINIMUM_PULSE: Duration = Duration::from_micros(150);
-
-    // Give more margin at the start of the wave form
-    let reserved_wavelength_start = Duration::ZERO;
-    // Give more margin at the end of the wave form
-    let resvered_wavelength_end = average_high / 2 + average_wavelength / 8;
-
-    let usable_wavelength = average_wavelength
-        .checked_sub(reserved_wavelength_start)
-        .and_then(|s| s.checked_sub(resvered_wavelength_end));
-
-    let Some(usable_wavelength) = usable_wavelength else {
-        return;
-    };
-
-    // Super fast fixed point division where brightness was 0.0 to 1.0
-    let scaled_wavelength = usable_wavelength
-        .as_micros()
-        .checked_mul((u16::MAX - brightness) as u64)
-        .and_then(|w| Some(w >> 16));
-    let Some(scaled_wavelength) = scaled_wavelength else {
-        return;
-    };
-
-    // info!(
-    //     "Wavelength: {}, Scaled: {}",
-    //     average_wavelength.as_micros(),
-    //     scaled_wavelength
-    // );
-    let scaled_wavelength = Duration::from_micros(scaled_wavelength as u64);
-
-    let trigger_time = next_zero_cross + reserved_wavelength_start + scaled_wavelength;
-    let pulse_length = latching_time
-        .saturating_sub(scaled_wavelength)
-        .max(MINIMUM_PULSE);
-
-    let _ = pulse_scheduler::schedule_pulse(trigger_time, pulse_length);
+        lookup_table[i] = reserved_start_us + trigger_us;
+        i += 1;
+    }
+    lookup_table
 }
 
-// Our signal pin is at a falling edge
-fn falling_edge(cs: CriticalSection<'_>) {
-    let now = pulse_scheduler::now();
+const LATCH_TIME_AFTER_ZERO_MICRO: u64 = 4000;
+const MINIMUM_LATCH_TIME_MICRO: u64 = 300;
+const fn fire_pulse_loopup_micros<const N: usize>(frequency: u64) -> [u64; N] {
+    let angle_lookup = fire_angle_loopup_micros::<N>(frequency);
+    let mut lookup_table: [u64; N] = [0; N];
 
-    let last_edge_cell = LAST_EDGE.borrow(cs);
-    let last_edge_optional = last_edge_cell.get();
-    last_edge_cell.set(Some(now));
+    let mut i = 0;
+    while i < N {
+        let trigger_us = angle_lookup[i];
+        let latch_time = if trigger_us > LATCH_TIME_AFTER_ZERO_MICRO {
+            MINIMUM_LATCH_TIME_MICRO
+        } else {
+            LATCH_TIME_AFTER_ZERO_MICRO - trigger_us
+        };
 
-    let Some(last_edge) = last_edge_optional else {
-        // No previous data
-        return;
-    };
-
-    // Time spent between now and the last rising edge
-    let delta = now - last_edge;
-    let average_high = AVG_TIME_HIGH.borrow_ref_mut(cs).new_sample(delta);
-
-    // Set estimated next zero cross on falling edge
-    // Time spent at ZERO is much larger then time spent high
-    // Gives us more time to compute dimming timing
-    let average_low = AVG_TIME_LOW.borrow_ref(cs).average();
-    let estimated_zero_cross = now + average_low + average_high / 2;
-
-    DIMMING_REQUEST.borrow(cs).set(Some(estimated_zero_cross));
+        lookup_table[i] = latch_time;
+        i += 1;
+    }
+    lookup_table
 }
 
-// Our signal pin is at a rising edge
-fn rising_edge(cs: CriticalSection<'_>) {
-    let now = pulse_scheduler::now();
+// Maps the brightess value from 0 to 100
+// To the time after a zero cross event to fire the triac
+static FIRE_ANGLE_TABLE: [u64; 101] = fire_angle_loopup_micros(60);
+static FIRE_WIDTH_TABLE: [u64; 101] = fire_pulse_loopup_micros(60);
 
-    let last_edge_cell = LAST_EDGE.borrow(cs);
-    let last_edge_optional = last_edge_cell.get();
-    last_edge_cell.set(Some(now));
+pub type LampDimmerRef = Arc<Mutex<RefCell<LampDimmer>>>;
+static DIMMER: Mutex<RefCell<Option<LampDimmerRef>>> = Mutex::new(RefCell::new(None));
 
-    let Some(last_edge) = last_edge_optional else {
-        // No previous data
-        return;
-    };
-
-    // Time spent between now and the last rising edge
-    let delta = now - last_edge;
-    let _ = AVG_TIME_LOW.borrow_ref_mut(cs).new_sample(delta);
-}
-
-// Highest priority since timing is crutial
 #[handler(priority = Priority::Priority3)]
-fn interrupt_handler() {
+fn pcnt_interrupt_handler() {
     critical_section::with(|cs| {
-        let mut u0 = UNIT.borrow_ref_mut(cs);
-        if let Some(u0) = u0.as_mut() {
-            if u0.interrupt_is_set() {
-                let events = u0.events();
+        let now = Instant::now();
+        let mut dimmer = DIMMER.borrow_ref_mut(cs);
+
+        if let Some(dimmer) = dimmer.as_mut() {
+            let dimmer = dimmer.borrow_ref(cs);
+            let unit = dimmer.pcnt_unit.borrow_ref(cs);
+
+            if unit.interrupt_is_set() {
+                let events = unit.events();
                 if events.high_limit {
-                    rising_edge(cs);
+                    dimmer.rising_edge(now, cs);
                 } else if events.low_limit {
-                    falling_edge(cs);
+                    dimmer.falling_edge(now, cs);
                 }
-                u0.reset_interrupt();
+                unit.reset_interrupt();
             }
         }
     });
 }
 
-pub fn do_pending_work() {
-    let dimming_request = critical_section::with(|cs| {
-        let request = DIMMING_REQUEST.borrow(cs).get();
-        DIMMING_REQUEST.borrow(cs).set(None);
-        request
-    });
-
-    if let Some(zero_cross) = dimming_request {
-        // info!("Dimming!");
-        handle_dimming(zero_cross);
-    }
+pub struct LampDimmer {
+    pcnt_unit: Mutex<RefCell<unit::Unit<'static, 0>>>,
+    avg_time_high: Mutex<RefCell<TimeRollingAverage<10>>>,
+    avg_time_low: Mutex<RefCell<TimeRollingAverage<10>>>,
+    last_edge: Mutex<Cell<Option<Instant>>>,
+    brightness: Mutex<Cell<u8>>,
+    // Gate channel
+    pulse_scheduler: Mutex<RefCell<RefPulseScheduler>>,
 }
 
-pub fn set_brightness(brightness: f32) {
-    let fixed_point_brightness = (brightness.clamp(0.0, 1.0) * u16::MAX as f32) as u16;
-    critical_section::with(|cs| {
-        BRIGHTNESS.borrow(cs).set(fixed_point_brightness);
-    })
-}
-
-pub fn initalize(
-    signal_input: Input<'static>,
-    gate_output: Output<'static>,
-    dimming_hw_timer: impl Timer + Into<AnyTimer<'static>>,
-    mut pcnt: Pcnt<'static>,
-) {
-    info!("Initalizing lamp dimmer!");
-    pulse_scheduler::initalize(dimming_hw_timer.into(), gate_output, Level::Low);
-
-    critical_section::with(|cs| {
-        pcnt.set_interrupt_handler(interrupt_handler);
+impl LampDimmer {
+    pub fn initalize(
+        mut pcnt: Pcnt<'static>,
+        zero_cross_pin: Input<'static>,
+        pulse_scheduler: RefPulseScheduler,
+    ) -> Result<LampDimmerRef, ()> {
+        pcnt.set_interrupt_handler(pcnt_interrupt_handler);
 
         let pcnt_unit = pcnt.unit0;
+        LampDimmer::configure_pnct_unit(&pcnt_unit, zero_cross_pin);
 
-        // Reset our unit 0
-        pcnt_unit.unlisten(); // Stop interrupts
-        pcnt_unit.reset_interrupt(); // Reset pending interrupts
-        pcnt_unit.pause();
-        pcnt_unit.clear(); // set counter to 0
+        let pcnt_unit = Mutex::new(RefCell::new(pcnt_unit));
+        let dimmer = Self {
+            pcnt_unit,
+            brightness: Mutex::new(Cell::new(0)),
+            avg_time_high: Mutex::new(RefCell::new(TimeRollingAverage::new())),
+            avg_time_low: Mutex::new(RefCell::new(TimeRollingAverage::new())),
+            last_edge: Mutex::new(Cell::new(None)),
+            pulse_scheduler: Mutex::new(RefCell::new(pulse_scheduler)),
+        };
+
+        let dimmer_ref = Arc::new(Mutex::new(RefCell::new(dimmer)));
+
+        critical_section::with(|cs| DIMMER.replace(cs, Some(dimmer_ref.clone())));
+
+        Ok(dimmer_ref)
+    }
+
+    pub fn set_brightness(&mut self, brightness: u8) {
+        critical_section::with(|cs| self.brightness.borrow(cs).set(brightness))
+    }
+
+    fn configure_pnct_unit(unit: &unit::Unit<'static, 0>, zero_cross_pin: Input<'static>) {
+        unit.unlisten(); // Stop interrupts
+        unit.reset_interrupt(); // Reset pending interrupts
+        unit.pause();
+        unit.clear(); // set counter to 0
 
         // Set our limits of -1 and 1
         // So an interrupt anytime an increment or decrement is triggered
-        let _ = pcnt_unit.set_low_limit(Some(-1));
-        let _ = pcnt_unit.set_high_limit(Some(1));
+        let _ = unit.set_low_limit(Some(-1));
+        let _ = unit.set_high_limit(Some(1));
 
         // Each time we are on a falling edge our counter is decremented
         // -> So the low limit interrupt is triggered
         // Each time we are in a rising edge our counter is incremented
         // -> So the high limit interrupt is triggered
-        pcnt_unit
-            .channel0
+        unit.channel0
             .set_input_mode(EdgeMode::Decrement, EdgeMode::Increment);
 
         // Set our rising and falling edge signal to be our signal_input
-        pcnt_unit.channel0.set_edge_signal(signal_input);
+        unit.channel0.set_edge_signal(zero_cross_pin);
 
         // Enable interupts
 
-        pcnt_unit.listen();
-        pcnt_unit.resume();
+        unit.listen();
+        unit.resume();
+    }
 
-        UNIT.borrow_ref_mut(cs).replace(pcnt_unit);
-        LAST_EDGE.borrow(cs).set(None);
-        BRIGHTNESS.borrow(cs).set(0);
-    });
+    fn handle_dimming(&self, zero_cross: Instant, cs: CriticalSection<'_>) {
+        // Lookup table fast and easy
+        let brightness = self.brightness.borrow(cs).get();
+        let fire_angle_us = FIRE_ANGLE_TABLE[brightness as usize];
+        let pulse_time_us = FIRE_WIDTH_TABLE[brightness as usize];
 
-    info!("Lamp Dimmer Initalized!");
+        let trigger_time = zero_cross + Duration::from_micros(fire_angle_us);
+        let pulse_duration = Duration::from_micros(pulse_time_us);
+        let _ = self
+            .pulse_scheduler
+            .borrow_ref(cs)
+            .borrow_ref_mut(cs)
+            .schedule_pulse(trigger_time, pulse_duration);
+    }
+
+    fn rising_edge(&self, time: Instant, cs: CriticalSection<'_>) {
+        // Update the last edge
+        let last_edge_cell = self.last_edge.borrow(cs);
+        let last_edge_optional = last_edge_cell.get();
+        last_edge_cell.set(Some(time));
+
+        let Some(last_edge) = last_edge_optional else {
+            // No previous data
+            return;
+        };
+
+        // Time spent between now and the last falling edge
+        let delta = time - last_edge;
+        let _ = self.avg_time_low.borrow_ref_mut(cs).new_sample(delta);
+
+        // Estimated next zero cross on rising edge
+        let average_high = self.avg_time_high.borrow_ref(cs).average();
+        let estimated_zero_cross =
+            self.pulse_scheduler.borrow_ref(cs).borrow_ref(cs).now() + average_high / 2;
+
+        self.handle_dimming(estimated_zero_cross, cs);
+    }
+
+    fn falling_edge(&self, time: Instant, cs: CriticalSection<'_>) {
+        // Update the last edge
+        let last_edge_cell = self.last_edge.borrow(cs);
+        let last_edge_optional = last_edge_cell.get();
+        last_edge_cell.set(Some(time));
+
+        let Some(last_edge) = last_edge_optional else {
+            // No previous data
+            return;
+        };
+
+        // Time spent between now and the last rising edge
+        let delta = time - last_edge;
+        let _ = self.avg_time_high.borrow_ref_mut(cs).new_sample(delta);
+    }
 }

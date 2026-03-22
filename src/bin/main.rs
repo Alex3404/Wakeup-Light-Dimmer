@@ -8,8 +8,8 @@
 #![deny(clippy::large_stack_frames)]
 
 use arduino_esp32_dimmer::{lamp_dimmer, pulse_scheduler};
-use esp_radio::ble::controller::BleConnector;
-use log::{error, info};
+use esp_hal::rmt::Rmt;
+use log::info;
 
 use core::f32::consts::PI;
 use libm::sinf;
@@ -20,7 +20,7 @@ use esp_hal::main;
 use esp_hal::gpio::{Input, InputConfig, Level, Output};
 use esp_hal::gpio::{OutputConfig, Pull};
 use esp_hal::pcnt::Pcnt;
-use esp_hal::time::{Duration, Instant};
+use esp_hal::time::{Duration, Instant, Rate};
 use esp_hal::timer::timg::TimerGroup;
 
 use esp_backtrace as _;
@@ -45,6 +45,12 @@ fn main() -> ! {
     let timer_group_0 = TimerGroup::new(peripherals.TIMG0);
     let pcnt = Pcnt::new(peripherals.PCNT);
 
+    let freq = Rate::from_mhz(80);
+    let rmt = Rmt::new(peripherals.RMT, freq);
+    let Ok(rmt) = rmt else {
+        panic!("Faild to create rmt");
+    };
+
     // Get the hardware timer and pcnt unit for our dimmer
     let dimming_timer = timer_group_0.timer1;
     let rtos_timer = timer_group_0.timer0;
@@ -55,9 +61,23 @@ fn main() -> ! {
 
     // Configure the triac gate pin starting at logical Low
     let gate_pin = Output::new(peripherals.GPIO8, Level::Low, OutputConfig::default());
+    let rmt_channel_0 = rmt.channel0;
+
+    // Initalize the heap allocator with 72000 bytes of ram
+    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 72000);
 
     // Intitalize the dimmer
-    lamp_dimmer::initalize(signal_pin, gate_pin, dimming_timer, pcnt);
+    let pulse_scheduler =
+        pulse_scheduler::PulseScheduler::new(dimming_timer, gate_pin, Level::Low, rmt_channel_0);
+
+    let Ok(pulse_scheduler) = pulse_scheduler else {
+        panic!("Unable to create pulse scheduler");
+    };
+
+    let lamp_dimmer = lamp_dimmer::LampDimmer::initalize(pcnt, signal_pin, pulse_scheduler.clone());
+    let Ok(lamp_dimmer) = lamp_dimmer else {
+        panic!("Unable to create lamp dimmer");
+    };
 
     info!("Start rtos");
 
@@ -67,9 +87,6 @@ fn main() -> ! {
 
     // let p = esp_hal::init(esp_hal::Config::default());
     // esp_alloc::psram_allocator!(p.PSRAM, esp_hal::psram);
-
-    // Initalize the heap allocator with 72000 bytes of ram
-    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 72000);
 
     // Coexist Libraries needs more RAM - so we've added some more
     // Coexist Libraries allow the support of multiple wireless protocols
@@ -95,13 +112,16 @@ fn main() -> ! {
 
         // esp_hal::delay::Delay::new().delay_millis(2000);
 
-        const BREATHING_TIME_MS: f32 = 60000.0;
+        const BREATHING_TIME_MS: f32 = 15000.0;
         let milis = Instant::now().duration_since_epoch().as_millis();
         let angle = ((milis % (BREATHING_TIME_MS) as u64) as f32 / BREATHING_TIME_MS) * 2.0 * PI;
         let brightness = (sinf(angle) + 1.0) / 2.0;
+        critical_section::with(|cs| {
+            lamp_dimmer
+                .borrow_ref_mut(cs)
+                .set_brightness((brightness * 100.0) as u8);
+        });
 
-        lamp_dimmer::set_brightness(brightness);
-        lamp_dimmer::do_pending_work();
         esp_hal::delay::Delay::new().delay_micros(1);
     }
 }

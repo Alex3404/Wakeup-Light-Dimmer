@@ -28,8 +28,10 @@ dependencies = [
  "esp-println",
  "esp-radio",
  "esp-rtos",
+ "heapless 0.9.2",
  "libm",
  "log",
+ "paste",
  "smoltcp",
 ]
 
