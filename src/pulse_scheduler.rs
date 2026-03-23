@@ -15,14 +15,12 @@ use critical_section::CriticalSection;
 use critical_section::Mutex;
 use esp_hal::gpio::{Level, Output};
 use esp_hal::rmt::{
-    self, ContinuousTxTransaction, Direction, PulseCode, Tx, TxChannelConfig, TxChannelCreator,
+    self, ContinuousTxTransaction, PulseCode, Tx, TxChannelConfig, TxChannelCreator,
 };
 use esp_hal::time::{Duration, Instant};
 use esp_hal::timer::{AnyTimer, Timer};
 use esp_hal::{Blocking, handler};
-use esp_println::println;
-use libm::sin;
-use log::{info, warn};
+use log::warn;
 
 use alloc::sync::Arc;
 use heapless::binary_heap::{BinaryHeap, Min};

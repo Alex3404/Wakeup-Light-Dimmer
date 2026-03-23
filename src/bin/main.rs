@@ -48,11 +48,11 @@ fn main() -> ! {
     let freq = Rate::from_mhz(80);
     let rmt = Rmt::new(peripherals.RMT, freq);
     let Ok(rmt) = rmt else {
-        panic!("Faild to create rmt");
+        panic!("Failed to create rmt");
     };
 
     // Get the hardware timer and pcnt unit for our dimmer
-    let dimming_timer = timer_group_0.timer1;
+    // let dimming_timer = timer_group_0.timer1;
     let rtos_timer = timer_group_0.timer0;
 
     // Discribes which pin the zero cross signal pull up pin is connected to
@@ -67,14 +67,16 @@ fn main() -> ! {
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 72000);
 
     // Intitalize the dimmer
-    let pulse_scheduler =
-        pulse_scheduler::PulseScheduler::new(dimming_timer, gate_pin, Level::Low, rmt_channel_0);
+    // let pulse_scheduler =
+    //     pulse_scheduler::PulseScheduler::new(dimming_timer, gate_pin, Level::Low, rmt_channel_0);
 
-    let Ok(pulse_scheduler) = pulse_scheduler else {
-        panic!("Unable to create pulse scheduler");
-    };
+    // let Ok(pulse_scheduler) = pulse_scheduler else {
+    //     panic!("Unable to create pulse scheduler");
+    // };
 
-    let lamp_dimmer = lamp_dimmer::LampDimmer::initalize(pcnt, signal_pin, pulse_scheduler.clone());
+    info!("Intitalizing lamp dimmer!");
+
+    let lamp_dimmer = lamp_dimmer::LampDimmer::initalize(pcnt, signal_pin, gate_pin, rmt_channel_0);
     let Ok(lamp_dimmer) = lamp_dimmer else {
         panic!("Unable to create lamp dimmer");
     };
