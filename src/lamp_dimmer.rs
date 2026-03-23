@@ -1,3 +1,4 @@
+use crate::pcnt_handler;
 use crate::rolling_average::TimeRollingAverage;
 
 use core::ops::{AddAssign, Rem};
@@ -7,12 +8,12 @@ use core::option::Option::{None, Some};
 use core::cell::{Cell, RefCell};
 use critical_section::{CriticalSection, Mutex};
 use esp_hal::gpio::{Input, Level, Output};
-use esp_hal::interrupt::Priority;
 use esp_hal::pcnt::channel::EdgeMode;
-use esp_hal::pcnt::{Pcnt, unit};
+use esp_hal::pcnt::unit;
+use esp_hal::pcnt::unit::Unit;
 use esp_hal::rmt::{ContinuousTxTransaction, PulseCode, Tx, TxChannelConfig, TxChannelCreator};
 use esp_hal::time::Instant;
-use esp_hal::{Blocking, handler, rmt};
+use esp_hal::{Blocking, rmt};
 
 extern crate alloc;
 use alloc::sync::Arc;
@@ -75,31 +76,23 @@ static FIRE_WIDTH_TABLE: [u64; 101] = fire_pulse_loopup_micros(60);
 pub type LampDimmerRef = Arc<Mutex<RefCell<LampDimmer>>>;
 static DIMMER: Mutex<RefCell<Option<LampDimmerRef>>> = Mutex::new(RefCell::new(None));
 
-#[handler(priority = Priority::Priority3)]
-fn pcnt_interrupt_handler() {
-    critical_section::with(|cs| {
-        let now = Instant::now();
-        let mut dimmer = DIMMER.borrow_ref_mut(cs);
+fn unit_0_handler(cs: CriticalSection<'_>, unit: &Unit<'_, 0>) {
+    let now = Instant::now();
+    let mut dimmer = DIMMER.borrow_ref_mut(cs);
 
-        if let Some(dimmer) = dimmer.as_mut() {
-            let dimmer = dimmer.borrow_ref(cs);
-            let unit = dimmer.pcnt_unit.borrow_ref(cs);
+    if let Some(dimmer) = dimmer.as_mut() {
+        let dimmer = dimmer.borrow_ref(cs);
 
-            if unit.interrupt_is_set() {
-                let events = unit.events();
-                if events.high_limit {
-                    dimmer.rising_edge(now, cs);
-                } else if events.low_limit {
-                    dimmer.falling_edge(now, cs);
-                }
-                unit.reset_interrupt();
-            }
+        let events = unit.events();
+        if events.high_limit {
+            dimmer.rising_edge(now, cs);
+        } else if events.low_limit {
+            dimmer.falling_edge(now, cs);
         }
-    });
+    }
 }
 
 pub struct LampDimmer {
-    pcnt_unit: Mutex<RefCell<unit::Unit<'static, 0>>>,
     avg_time_high: Mutex<RefCell<TimeRollingAverage<10>>>,
     last_edge: Mutex<Cell<Option<Instant>>>,
     brightness: Mutex<Cell<u8>>,
@@ -114,7 +107,7 @@ pub struct LampDimmer {
 
 impl LampDimmer {
     pub fn initalize<Channel>(
-        mut pcnt: Pcnt<'static>,
+        pcnt_unit: unit::Unit<'static, 0>,
         zero_cross_pin: Input<'static>,
         signal_output: Output<'static>,
         rmt_channel: Channel,
@@ -122,19 +115,10 @@ impl LampDimmer {
     where
         Channel: TxChannelCreator<'static, Blocking> + Sized,
     {
-        pcnt.set_interrupt_handler(pcnt_interrupt_handler);
-
-        let pcnt_unit = pcnt.unit0;
-        info!("Configure pnct!");
         let _ = LampDimmer::configure_pnct_unit(&pcnt_unit, zero_cross_pin)?;
-        info!("Configure rmt!");
         let tx_channel = LampDimmer::configure_rmt_channel(rmt_channel, signal_output)?;
-        info!("make mutex!");
-        let pcnt_unit = Mutex::new(RefCell::new(pcnt_unit));
-        info!("make mutex?");
 
         let dimmer = Self {
-            pcnt_unit,
             brightness: Mutex::new(Cell::new(0)),
             avg_time_high: Mutex::new(RefCell::new(TimeRollingAverage::new())),
             last_edge: Mutex::new(Cell::new(None)),
@@ -147,8 +131,8 @@ impl LampDimmer {
         };
 
         let dimmer_ref = Arc::new(Mutex::new(RefCell::new(dimmer)));
-
         critical_section::with(|cs| DIMMER.replace(cs, Some(dimmer_ref.clone())));
+        pcnt_handler::add_interrupt_0(unit_0_handler, pcnt_unit);
 
         Ok(dimmer_ref)
     }
