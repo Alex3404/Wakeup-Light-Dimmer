@@ -19,6 +19,12 @@ pub struct LookupTables {
     pub pulse_width_table: [u16; LOOKUP_TABLE_SIZE],
 }
 
+macro_rules! fixed_point_mul {
+    ($val1:expr, $val2:expr, $bits:expr) => {
+        $val1.saturating_mul($val2) >> $bits
+    };
+}
+
 /// All fractional calculations are done in u32 fixed point
 /// 16 least signifcant bits repersent the fraction
 /// 16 most siginifcant bits repersent the integer
@@ -45,7 +51,7 @@ impl FireTimingConfig {
             };
         }
 
-        let total_angle_time_us = 1_000_000u32.strict_div(frequency as u32 * 2);
+        let total_angle_time_micros = 1_000_000u32.strict_div(frequency as u32 * 2);
 
         let mut brightness_index = 0;
         while brightness_index < LOOKUP_TABLE_SIZE {
@@ -53,44 +59,54 @@ impl FireTimingConfig {
             // 16 least signifcant bits repersent the fraction
             // 16 most siginifcant bits repersent the integer
 
+            // Turn brightness values from 0 to MAX_BRIGHTNESS divided by MAX_BRIGHTNESS
+            // To yield a fraction as a fixed point number as described above
+            let reserved_start_fraction = (MAX_BRIGHTNESS - self.perceved_full_brightness) as u32
+                * u16::MAX as u32
+                / MAX_BRIGHTNESS as u32;
+
+            // Turn brightness values from 0 to MAX_BRIGHTNESS divided by MAX_BRIGHTNESS
+            // To yield a fraction as a fixed point number as described above
+            let reserved_end_fraction =
+                (self.perceved_zero_brightness) as u32 * u16::MAX as u32 / MAX_BRIGHTNESS as u32;
+
             // Multiply the wave time by the both of the margin fractions to find
             // Phase angle
-            let reserved_start_us =
-                (total_angle_time_us * self.perceved_zero_brightness as u32) >> 16;
-
-            let reserved_end_us = (total_angle_time_us
-                * (MAX_BRIGHTNESS - self.perceved_full_brightness) as u32)
-                >> 16;
+            let trigger_start_micros =
+                fixed_point_mul!(total_angle_time_micros, reserved_start_fraction, 16);
+            let trigger_end_micros =
+                fixed_point_mul!(total_angle_time_micros, reserved_end_fraction, 16);
 
             // Compute the brightess fraction
-            // for example as brightness goes from 0 to 100
-            // the fraction is 1.0 * (brightness_index / 100)
-            // If brightness_index is the fraction would be close to 0.5
+            // as a fixed point number as described above
             let brightness_fraction =
                 (u16::MAX as u32) * brightness_index as u32 / MAX_BRIGHTNESS as u32;
 
+            // Gamma correct the fraction
             let brightness_fraction =
                 FireTimingConfig::gamma_correct(brightness_fraction, self.gamma_correction);
 
             // Get the non reserved part of the wave
-            let reserved_angle_time_us = total_angle_time_us
-                .saturating_sub(reserved_end_us)
-                .saturating_sub(reserved_start_us)
+            let total_allowed_trigger_micros = total_angle_time_micros
+                .saturating_sub(trigger_start_micros)
+                .saturating_sub(trigger_end_micros)
                 .saturating_sub(self.latching_time_before_next_zero_us as u32);
 
             // Multiply our wave time by 1.0 - brightness
             let one_minus_fraction = (u16::MAX as u32).saturating_sub(brightness_fraction);
-            let trigger_time_us = reserved_angle_time_us.saturating_mul(one_minus_fraction) >> 16;
-            let trigger_angle_us = reserved_start_us.saturating_add(trigger_time_us);
-            let trigger_angle_us = (trigger_angle_us as u16) & PulseCode::MAX_LEN;
+            let trigger_time_us =
+                fixed_point_mul!(total_allowed_trigger_micros, one_minus_fraction, 16);
 
-            let latch_time = self
+            let trigger_time_micros = trigger_start_micros.saturating_add(trigger_time_us);
+            let trigger_time_micros = trigger_time_micros as u16;
+
+            let latch_time_micros = self
                 .latching_time_after_zero_us
-                .saturating_sub(trigger_angle_us)
+                .saturating_sub(trigger_time_micros)
                 .max(self.minimum_latching_time_us);
 
-            pulse_width_table[brightness_index] = latch_time & PulseCode::MAX_LEN;
-            fire_angle_table[brightness_index] = trigger_angle_us;
+            pulse_width_table[brightness_index] = latch_time_micros;
+            fire_angle_table[brightness_index] = trigger_time_micros;
             brightness_index += 1;
         }
 

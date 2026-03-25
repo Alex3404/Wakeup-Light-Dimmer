@@ -8,6 +8,14 @@
 #![deny(clippy::large_stack_frames)]
 
 use embassy_executor::Spawner;
+use embassy_sync::blocking_mutex::NoopMutex;
+use embedded_graphics::{
+    Drawable,
+    mono_font::MonoTextStyleBuilder,
+    pixelcolor::BinaryColor,
+    prelude::Point,
+    text::{Baseline, Text},
+};
 use esp_backtrace as _;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -20,21 +28,18 @@ use arduino_esp32_dimmer::{
     },
     rotery_decoder::{Rotation, RoteryDecoder},
 };
-use libm::sinf;
 
 use core::{
-    f32::consts::PI,
-    sync::atomic::{AtomicI32, AtomicU8, Ordering},
-    time::Duration,
+    cell::RefCell,
+    sync::atomic::{AtomicU8, Ordering},
 };
 
 use embassy_time::Timer;
 use esp_hal::{
     Blocking,
     clock::CpuClock,
-    gpio::{Input, InputConfig, Io, Level, Output, OutputConfig, Pull},
-    pcnt::Pcnt,
-    peripherals::Peripherals,
+    gpio::{DriveMode, Input, InputConfig, Level, Output, OutputConfig, Pull},
+    peripherals::{GPIO, GPIO3, GPIO4, GPIO11, GPIO12, I2C0, I2C1, Peripherals},
     rmt::Rmt,
     time::{Instant, Rate},
     timer::timg::TimerGroup,
@@ -43,17 +48,71 @@ use esp_hal::{
 extern crate alloc;
 use alloc::boxed::Box;
 use esp_radio::ble::controller::BleConnector;
-use log::info;
+use log::{error, info};
 
-static BRIGHTNESS: AtomicU8 = AtomicU8::new(10);
+static BRIGHTNESS: AtomicU8 = AtomicU8::new(0);
 fn rotated(rotation: Rotation, _spawner: Spawner) {
     let value = BRIGHTNESS.load(Ordering::Relaxed);
     let next_value = match rotation {
-        Rotation::Clockwise => value.saturating_add(5).min(lamp_dimmer::MAX_BRIGHTNESS),
-        Rotation::Counterclockwise => value.saturating_sub(5),
+        Rotation::Clockwise => value.saturating_add(2).min(lamp_dimmer::MAX_BRIGHTNESS),
+        Rotation::Counterclockwise => value.saturating_sub(2),
     };
     BRIGHTNESS.store(next_value, Ordering::Relaxed);
     info!("Brightness: {}", next_value);
+}
+
+#[embassy_executor::task]
+async fn display_test(i2c1: I2C1<'static>, scl: GPIO12<'static>, sda: GPIO11<'static>) -> () {
+    info!("Display test!");
+
+    use display_interface_i2c::I2CInterface;
+    use embedded_graphics::{
+        mono_font::{MonoTextStyleBuilder, ascii::FONT_6X10},
+        pixelcolor::BinaryColor,
+        prelude::*,
+        text::{Baseline, Text},
+    };
+    use esp_hal::i2c::master::Config;
+    use esp_hal::i2c::master::I2c;
+
+    let config = Config::default().with_frequency(Rate::from_khz(400));
+
+    let i2c_result = I2c::new(i2c1, config);
+    let Ok(i2c) = i2c_result else {
+        return;
+    };
+    let i2c = i2c.with_scl(scl).with_sda(sda).into_async();
+
+    const I2C_ADDR: u8 = 0x3C;
+    let interface = I2CInterface::new(i2c, I2C_ADDR, 0x00);
+    type Display = oled_async::displays::;
+    use oled_async::{Builder, prelude::*};
+
+    let varient = Display {};
+    let mut display: GraphicsMode<_, _> = Builder::new(varient)
+        .with_rotation(DisplayRotation::Rotate0)
+        .connect(interface)
+        .into();
+
+    display.init().await.unwrap();
+    display.clear();
+    display.flush().await.unwrap();
+
+    let text_style = MonoTextStyleBuilder::new()
+        .font(&FONT_6X10)
+        .text_color(BinaryColor::On)
+        .build();
+
+    Text::with_baseline("Hello world!", Point::zero(), text_style, Baseline::Top)
+        .draw(&mut display)
+        .unwrap();
+
+    Text::with_baseline("Hello Rust!", Point::new(0, 16), text_style, Baseline::Top)
+        .draw(&mut display)
+        .unwrap();
+
+    // display.clear();
+    display.flush().await.unwrap();
 }
 
 #[allow(
@@ -70,6 +129,24 @@ async fn main(spawner: Spawner) -> ! {
     let rmt = initalize_rmt(&peripherals);
     let (zero_cross, triac_gate) = get_dimmer_io(&peripherals);
     let (clock, rotate, switch) = get_rotery_encoder_io(&peripherals);
+    let i2c1 = peripherals.I2C1;
+    let sda = peripherals.GPIO11;
+    let scl = peripherals.GPIO12;
+
+    // let sda = Output::new(
+    //     sda,
+    //     Level::Low,
+    //     OutputConfig::default()
+    //         .with_drive_mode(DriveMode::OpenDrain)
+    //         .with_pull(Pull::None),
+    // );
+    // let scl = Output::new(
+    //     scl,
+    //     Level::Low,
+    //     OutputConfig::default()
+    //         .with_drive_mode(DriveMode::OpenDrain)
+    //         .with_pull(Pull::None),
+    // );
 
     // Initalize the heap allocator with 72000 bytes of ram
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 72000);
@@ -79,6 +156,8 @@ async fn main(spawner: Spawner) -> ! {
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0);
     info!("Embassy initialized!");
+
+    spawner.spawn(display_test(i2c1, scl, sda));
 
     // Initalize the rotery decoder
     let rotery_decoder = RoteryDecoder::create(spawner, clock, rotate, switch);
@@ -101,11 +180,11 @@ async fn main(spawner: Spawner) -> ! {
 
     let fire_timing = FireTimingConfig::new()
         .with_latch_time_after_zero(5000)
-        .with_latch_time_before_next_zero(1000)
-        .with_min_latch_time(1000)
-        .with_perceived_zero_brightness(0)
-        .with_perceived_full_brightness(100)
-        .with_gamma_correction(GammaCorrection::Linear);
+        .with_latch_time_before_next_zero(500)
+        .with_min_latch_time(150)
+        .with_perceived_zero_brightness(20)
+        .with_perceived_full_brightness(36)
+        .with_gamma_correction(GammaCorrection::Exponetinal);
 
     let dimmer_config = LampDimmerChannelConfig::new(60, zero_cross, triac_gate, rmt.channel0)
         .with_firing_timing(fire_timing);
