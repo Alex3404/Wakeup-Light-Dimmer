@@ -7,123 +7,189 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use arduino_esp32_dimmer::{lamp_dimmer, pulse_scheduler};
-use esp_hal::rmt::Rmt;
-use log::info;
-
-use core::f32::consts::PI;
-use libm::sinf;
-
-use esp_hal::clock::CpuClock;
-use esp_hal::main;
-
-use esp_hal::gpio::{Input, InputConfig, Level, Output};
-use esp_hal::gpio::{OutputConfig, Pull};
-use esp_hal::pcnt::Pcnt;
-use esp_hal::time::{Duration, Instant, Rate};
-use esp_hal::timer::timg::TimerGroup;
-
+use embassy_executor::Spawner;
 use esp_backtrace as _;
-
-extern crate alloc;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
+use arduino_esp32_dimmer::{
+    lamp_dimmer::{
+        self, FireTimingConfig, GammaCorrection, LampDimmerChannel, LampDimmerChannelConfig,
+    },
+    rotery_decoder::{Rotation, RoteryDecoder},
+};
+use libm::sinf;
+
+use core::{
+    f32::consts::PI,
+    sync::atomic::{AtomicI32, AtomicU8, Ordering},
+    time::Duration,
+};
+
+use embassy_time::Timer;
+use esp_hal::{
+    Blocking,
+    clock::CpuClock,
+    gpio::{Input, InputConfig, Io, Level, Output, OutputConfig, Pull},
+    pcnt::Pcnt,
+    peripherals::Peripherals,
+    rmt::Rmt,
+    time::{Instant, Rate},
+    timer::timg::TimerGroup,
+};
+
+extern crate alloc;
+use alloc::boxed::Box;
+use esp_radio::ble::controller::BleConnector;
+use log::info;
+
+static BRIGHTNESS: AtomicU8 = AtomicU8::new(10);
+fn rotated(rotation: Rotation, _spawner: Spawner) {
+    let value = BRIGHTNESS.load(Ordering::Relaxed);
+    let next_value = match rotation {
+        Rotation::Clockwise => value.saturating_add(5).min(lamp_dimmer::MAX_BRIGHTNESS),
+        Rotation::Counterclockwise => value.saturating_sub(5),
+    };
+    BRIGHTNESS.store(next_value, Ordering::Relaxed);
+    info!("Brightness: {}", next_value);
+}
+
 #[allow(
     clippy::large_stack_frames,
     reason = "it's not unusual to allocate larger buffers etc. in main"
 )]
-#[main]
-fn main() -> ! {
+#[esp_rtos::main]
+async fn main(spawner: Spawner) -> ! {
     esp_println::logger::init_logger_from_env();
-
-    // generator version: 1.2.0
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
-    let timer_group_0 = TimerGroup::new(peripherals.TIMG0);
-    let pcnt = Pcnt::new(peripherals.PCNT);
+
+    // Initalize peripherals used
+    let rmt = initalize_rmt(&peripherals);
+    let (zero_cross, triac_gate) = get_dimmer_io(&peripherals);
+    let (clock, rotate, switch) = get_rotery_encoder_io(&peripherals);
+
+    // Initalize the heap allocator with 72000 bytes of ram
+    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 72000);
+    // COEX needs more RAM - so we've added some more
+    esp_alloc::heap_allocator!(size: 64 * 1024);
+
+    let timg0 = TimerGroup::new(peripherals.TIMG0);
+    esp_rtos::start(timg0.timer0);
+    info!("Embassy initialized!");
+
+    // Initalize the rotery decoder
+    let rotery_decoder = RoteryDecoder::create(spawner, clock, rotate, switch);
+    let Ok(rotery_decoder) = rotery_decoder else {
+        panic!("Failed to create rotery decoder!");
+    };
+    rotery_decoder
+        .borrow()
+        .borrow_mut()
+        .add_rotation_event(Box::new(rotated));
+
+    info!("Created rotery decoder!");
+
+    // Start up wifi and bluetooth controller
+    let radio_init = esp_radio::init().expect("Failed to initialize Wi-Fi/BLE controller");
+    let (mut _wifi_controller, _interfaces) =
+        esp_radio::wifi::new(&radio_init, peripherals.WIFI, Default::default())
+            .expect("Failed to initialize Wi-Fi controller");
+    let _connector = BleConnector::new(&radio_init, peripherals.BT, Default::default());
+
+    let fire_timing = FireTimingConfig::new()
+        .with_latch_time_after_zero(5000)
+        .with_latch_time_before_next_zero(1000)
+        .with_min_latch_time(1000)
+        .with_perceived_zero_brightness(0)
+        .with_perceived_full_brightness(100)
+        .with_gamma_correction(GammaCorrection::Linear);
+
+    let dimmer_config = LampDimmerChannelConfig::new(60, zero_cross, triac_gate, rmt.channel0)
+        .with_firing_timing(fire_timing);
+
+    // Initalize our lamp dimmer
+    let main_dimmer = LampDimmerChannel::create(spawner, dimmer_config);
+    let Ok(main_dimmer) = main_dimmer else {
+        panic!("Failed to create main dimmer!");
+    };
+
+    info!("Created main light dimmer channel!");
+
+    // Spawn some tasks
+    let _ = spawner;
+
+    let mut angle: f32 = 0.0;
+    let mut last_time = Instant::now();
+    loop {
+        // Simple
+        // let speed_counter = SPEED.load(Ordering::Relaxed).clamp(1, 100);
+        // let angular_speed = (speed_counter as f32 / 25.0) * 2.0 * PI;
+
+        // let now = Instant::now();
+        // let time_delta = now - last_time;
+        // last_time = now;
+        // let delta_secs = time_delta.as_micros() as f32 / 1_000_000.0;
+        // angle = angle + angular_speed * delta_secs;
+
+        // let brightness_f = (sinf(angle) + 1.0) / 2.0;
+        // let brightness = (brightness_f * lamp_dimmer::MAX_BRIGHTNESS as f32) as u8;
+
+        let brightness = BRIGHTNESS.load(Ordering::Relaxed);
+        main_dimmer.lock(|dimmer| {
+            dimmer.borrow_mut().set_brightness(brightness);
+        });
+
+        Timer::after_micros(250).await;
+    }
+}
+
+pub fn initalize_rmt(peripherals: &Peripherals) -> Rmt<'static, Blocking> {
+    let peripheral_rmt = unsafe { peripherals.RMT.clone_unchecked() };
 
     let freq = Rate::from_mhz(80);
-    let rmt = Rmt::new(peripherals.RMT, freq);
+    let rmt = Rmt::new(peripheral_rmt, freq);
+
     let Ok(rmt) = rmt else {
         panic!("Failed to create rmt");
     };
 
-    // Get the hardware timer and pcnt unit for our dimmer
-    // let dimming_timer = timer_group_0.timer1;
-    let rtos_timer = timer_group_0.timer0;
+    rmt
+}
 
-    // Discribes which pin the zero cross signal pull up pin is connected to
-    let pullup_config = InputConfig::default().with_pull(Pull::Up);
-    let signal_pin = Input::new(peripherals.GPIO7, pullup_config);
+pub fn get_rotery_encoder_io(
+    peripherals: &Peripherals,
+) -> (Input<'static>, Input<'static>, Input<'static>) {
+    let switch_pin = unsafe { peripherals.GPIO9.clone_unchecked() };
+    let dt_pin = unsafe { peripherals.GPIO8.clone_unchecked() };
+    let clock_pin = unsafe { peripherals.GPIO7.clone_unchecked() };
 
-    // Configure the triac gate pin starting at logical Low
-    let gate_pin = Output::new(peripherals.GPIO8, Level::Low, OutputConfig::default());
-    let rmt_channel_0 = rmt.channel0;
+    // Using Pull::None as Pull::Up changes the total resistance of the
+    // zero cross detection circitry. Changining the timing for the zero cross pulse.
+    // Since it adds the internal pull up resistance in parellel with the on board pull up resistor
+    let no_pullup = InputConfig::default().with_pull(Pull::None);
+    let pullup = InputConfig::default().with_pull(Pull::None);
+    let clock_input = Input::new(dt_pin, no_pullup);
+    let dt_input = Input::new(clock_pin, no_pullup);
+    let switch_input = Input::new(switch_pin, pullup);
 
-    // Initalize the heap allocator with 72000 bytes of ram
-    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 72000);
+    (clock_input, dt_input, switch_input)
+}
 
-    // Intitalize the dimmer
-    // let pulse_scheduler =
-    //     pulse_scheduler::PulseScheduler::new(dimming_timer, gate_pin, Level::Low, rmt_channel_0);
+pub fn get_dimmer_io(peripherals: &Peripherals) -> (Input<'static>, Output<'static>) {
+    let signal_pin = unsafe { peripherals.GPIO6.clone_unchecked() }; // D3 on arduino
+    let gate_pin = unsafe { peripherals.GPIO5.clone_unchecked() }; // D2 on arudino
 
-    // let Ok(pulse_scheduler) = pulse_scheduler else {
-    //     panic!("Unable to create pulse scheduler");
-    // };
+    // Using Pull::None as Pull::Up changes the total resistance of the
+    // zero cross detection circitry. Changining the timing for the zero cross pulse.
+    // Since it adds the internal pull up resistance in parellel with the on board pull up resistor
+    let zero_cross_config = InputConfig::default().with_pull(Pull::None);
+    let zero_cross_input = Input::new(signal_pin, zero_cross_config);
 
-    info!("Intitalizing lamp dimmer!");
+    let triac_gate_config = OutputConfig::default();
+    let triac_gate_output = Output::new(gate_pin, Level::Low, triac_gate_config);
 
-    let lamp_dimmer = lamp_dimmer::LampDimmer::initalize(pcnt, signal_pin, gate_pin, rmt_channel_0);
-    let Ok(lamp_dimmer) = lamp_dimmer else {
-        panic!("Unable to create lamp dimmer");
-    };
-
-    info!("Start rtos");
-
-    // Start the ESP Real Time Operating System
-    // Give the OS a hardware timer for Async
-    esp_rtos::start(rtos_timer);
-
-    // let p = esp_hal::init(esp_hal::Config::default());
-    // esp_alloc::psram_allocator!(p.PSRAM, esp_hal::psram);
-
-    // Coexist Libraries needs more RAM - so we've added some more
-    // Coexist Libraries allow the support of multiple wireless protocols
-    // We need this since we are using both Bluetooth and WI-FI
-    // esp_alloc::heap_allocator!(size: 64 * 512);
-
-    // Initalize ESP radio for WIFI and/or Bluetooth
-    // let radio_init = esp_radio::init().expect("Failed to initialize Wi-Fi/BLE controller");
-
-    // Intialize the WI-FI controller for the ESP32
-    // let (mut _wifi_controller, _interfaces) =
-    //     esp_radio::wifi::new(&radio_init, peripherals.WIFI, Default::default())
-    //         .expect("Failed to initialize Wi-Fi controller");
-
-    // Intialize the Bluetooth Host Controller Interface
-    // let _connector = BleConnector::new(&radio_init, peripherals.BT, Default::default());
-
-    info!("Main loop started!");
-    loop {
-        // let now = pulse_scheduler::now();
-        // let pulse_err =
-        //     pulse_scheduler::schedule_pulse(now + Duration::from_secs(1), Duration::from_secs(1));
-
-        // esp_hal::delay::Delay::new().delay_millis(2000);
-
-        const BREATHING_TIME_MS: f32 = 15000.0;
-        let milis = Instant::now().duration_since_epoch().as_millis();
-        let angle = ((milis % (BREATHING_TIME_MS) as u64) as f32 / BREATHING_TIME_MS) * 2.0 * PI;
-        let brightness = (sinf(angle) + 1.0) / 2.0;
-        critical_section::with(|cs| {
-            lamp_dimmer
-                .borrow_ref_mut(cs)
-                .set_brightness((brightness * 100.0) as u8);
-        });
-
-        esp_hal::delay::Delay::new().delay_micros(1);
-    }
+    (zero_cross_input, triac_gate_output)
 }

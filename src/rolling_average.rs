@@ -1,4 +1,4 @@
-use esp_hal::time::Duration;
+use embassy_time::Duration;
 
 pub struct TimeRollingAverage<const N: usize> {
     sum: Duration,
@@ -10,9 +10,9 @@ pub struct TimeRollingAverage<const N: usize> {
 impl<const N: usize> TimeRollingAverage<N> {
     pub const fn new() -> Self {
         Self {
-            sum: Duration::ZERO,
+            sum: Duration::MIN,
             count: 0,
-            buffer: [Duration::ZERO; N],
+            buffer: [Duration::MIN; N],
             index: 0,
         }
     }
@@ -39,7 +39,7 @@ impl<const N: usize> TimeRollingAverage<N> {
 
     pub fn average(&self) -> Duration {
         if self.count == 0 {
-            return Duration::ZERO;
+            return Duration::MIN;
         }
 
         let avg_micros = self.sum.as_micros() / self.count as u64;

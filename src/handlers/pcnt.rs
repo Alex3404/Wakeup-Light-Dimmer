@@ -34,7 +34,7 @@ macro_rules! add_interrupt_functions {
     ($($number:literal),*) => {
         $(
             paste::paste! {
-                pub fn [<add_interrupt_ $number>](handler: UnitInterruptFunction<$number>, unit: unit::Unit<'static, $number>) {
+                pub fn [<add_handler_to_unit $number>](handler: UnitInterruptFunction<$number>, unit: unit::Unit<'static, $number>) {
                     critical_section::with(|cs| {
                         let mut handler_cell = [<UNIT_ $number _INTERRUPT_HANDLER>].borrow_ref_mut(cs);
                         if handler_cell.is_some() {
