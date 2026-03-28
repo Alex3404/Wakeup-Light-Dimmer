@@ -85,7 +85,7 @@ impl Default for FireTimingConfig {
             latching_time_before_next_zero_us: 250,
             minimum_latching_time_us: 150,
             perceved_zero_brightness: 0,
-            perceved_full_brightness: 100,
+            perceved_full_brightness: MAX_BRIGHTNESS,
             gamma_correction: GammaCorrection::Linear,
         }
     }

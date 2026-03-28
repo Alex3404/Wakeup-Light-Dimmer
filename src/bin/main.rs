@@ -8,14 +8,6 @@
 #![deny(clippy::large_stack_frames)]
 
 use embassy_executor::Spawner;
-use embassy_sync::blocking_mutex::NoopMutex;
-use embedded_graphics::{
-    Drawable,
-    mono_font::MonoTextStyleBuilder,
-    pixelcolor::BinaryColor,
-    prelude::Point,
-    text::{Baseline, Text},
-};
 use esp_backtrace as _;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -25,30 +17,39 @@ esp_bootloader_esp_idf::esp_app_desc!();
 use arduino_esp32_dimmer::{
     lamp_dimmer::{
         self, FireTimingConfig, GammaCorrection, LampDimmerChannel, LampDimmerChannelConfig,
+        zero_cross_analyzer,
     },
     rotery_decoder::{Rotation, RoteryDecoder},
+    ui,
 };
 
-use core::{
-    cell::RefCell,
-    sync::atomic::{AtomicU8, Ordering},
-};
+use core::sync::atomic::{AtomicU8, Ordering};
 
 use embassy_time::Timer;
 use esp_hal::{
     Blocking,
     clock::CpuClock,
-    gpio::{DriveMode, Input, InputConfig, Level, Output, OutputConfig, Pull},
-    peripherals::{GPIO, GPIO3, GPIO4, GPIO11, GPIO12, I2C0, I2C1, Peripherals},
+    gpio::{Input, InputConfig, Level, Output, OutputConfig, Pull},
+    i2c::master::I2c,
+    mcpwm::{
+        operator::{PwmActions, PwmPinConfig},
+        timer::{PwmWorkingMode, TimerClockConfig},
+    },
+    peripherals::Peripherals,
     rmt::Rmt,
     time::{Instant, Rate},
     timer::timg::TimerGroup,
+};
+use esp_hal::{
+    i2c::master::Config as I2CConfig,
+    mcpwm::{McPwm, PeripheralClockConfig},
 };
 
 extern crate alloc;
 use alloc::boxed::Box;
 use esp_radio::ble::controller::BleConnector;
-use log::{error, info};
+use log::{info, warn};
+use ui::{DimmerInterface, UserInterface};
 
 static BRIGHTNESS: AtomicU8 = AtomicU8::new(0);
 fn rotated(rotation: Rotation, _spawner: Spawner) {
@@ -59,60 +60,6 @@ fn rotated(rotation: Rotation, _spawner: Spawner) {
     };
     BRIGHTNESS.store(next_value, Ordering::Relaxed);
     info!("Brightness: {}", next_value);
-}
-
-#[embassy_executor::task]
-async fn display_test(i2c1: I2C1<'static>, scl: GPIO12<'static>, sda: GPIO11<'static>) -> () {
-    info!("Display test!");
-
-    use display_interface_i2c::I2CInterface;
-    use embedded_graphics::{
-        mono_font::{MonoTextStyleBuilder, ascii::FONT_6X10},
-        pixelcolor::BinaryColor,
-        prelude::*,
-        text::{Baseline, Text},
-    };
-    use esp_hal::i2c::master::Config;
-    use esp_hal::i2c::master::I2c;
-
-    let config = Config::default().with_frequency(Rate::from_khz(400));
-
-    let i2c_result = I2c::new(i2c1, config);
-    let Ok(i2c) = i2c_result else {
-        return;
-    };
-    let i2c = i2c.with_scl(scl).with_sda(sda).into_async();
-
-    const I2C_ADDR: u8 = 0x3C;
-    let interface = I2CInterface::new(i2c, I2C_ADDR, 0x00);
-    type Display = oled_async::displays::;
-    use oled_async::{Builder, prelude::*};
-
-    let varient = Display {};
-    let mut display: GraphicsMode<_, _> = Builder::new(varient)
-        .with_rotation(DisplayRotation::Rotate0)
-        .connect(interface)
-        .into();
-
-    display.init().await.unwrap();
-    display.clear();
-    display.flush().await.unwrap();
-
-    let text_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X10)
-        .text_color(BinaryColor::On)
-        .build();
-
-    Text::with_baseline("Hello world!", Point::zero(), text_style, Baseline::Top)
-        .draw(&mut display)
-        .unwrap();
-
-    Text::with_baseline("Hello Rust!", Point::new(0, 16), text_style, Baseline::Top)
-        .draw(&mut display)
-        .unwrap();
-
-    // display.clear();
-    display.flush().await.unwrap();
 }
 
 #[allow(
@@ -127,11 +74,48 @@ async fn main(spawner: Spawner) -> ! {
 
     // Initalize peripherals used
     let rmt = initalize_rmt(&peripherals);
-    let (zero_cross, triac_gate) = get_dimmer_io(&peripherals);
+    let (mut zero_cross, triac_gate) = get_dimmer_io(&peripherals);
     let (clock, rotate, switch) = get_rotery_encoder_io(&peripherals);
     let i2c1 = peripherals.I2C1;
     let sda = peripherals.GPIO11;
     let scl = peripherals.GPIO12;
+
+    // MCPWM CAPTURE for microsecond pulse capture
+    let clock_config = PeripheralClockConfig::with_frequency(Rate::from_mhz(1));
+    let Ok(clock_config) = clock_config else {
+        panic!("Failed to create peripheral clock for mcpwm");
+    };
+
+    //
+
+    let mcpwm = peripherals.MCPWM0;
+    mcpwm
+        .register_block()
+        .cap_ch0_cfg()
+        .write(|f| f.en().set_bit());
+
+    // Reads the last capture on channel 0
+    mcpwm.register_block().cap_ch(0).read().bits();
+
+    // Enable the assosaited timer with capture
+    mcpwm
+        .register_block()
+        .cap_timer_cfg()
+        .write(|f| f.cap_timer_en().set_bit());
+
+    // Enable capture channel 0
+    mcpwm
+        .register_block()
+        .cap_ch_cfg(0)
+        .write(|f| f.en().set_bit());
+
+    // mcpwm.timer0.start(clock_config.timer_clock_with_prescaler(
+    //     u16::MAX,
+    //     PwmWorkingMode::Increase,
+    //     0,
+    // ));
+    // mcpwm.operator0.set_timer(&mcpwm.timer0);
+    // mcpwm.operator0.with_pin_b(pin, config)
 
     // let sda = Output::new(
     //     sda,
@@ -157,7 +141,18 @@ async fn main(spawner: Spawner) -> ! {
     esp_rtos::start(timg0.timer0);
     info!("Embassy initialized!");
 
-    spawner.spawn(display_test(i2c1, scl, sda));
+    let config = I2CConfig::default().with_frequency(Rate::from_khz(400));
+
+    let i2c_result = I2c::new(i2c1, config);
+    let Ok(i2c) = i2c_result else {
+        panic!("Unable to initlaize i2c peripheral")
+    };
+
+    let i2c = i2c.with_scl(scl).with_sda(sda).into_async();
+    let menu_result = UserInterface::create(i2c).await;
+    let Ok(mut menu) = menu_result else {
+        panic!("Failed to intialize menu")
+    };
 
     // Initalize the rotery decoder
     let rotery_decoder = RoteryDecoder::create(spawner, clock, rotate, switch);
@@ -182,12 +177,34 @@ async fn main(spawner: Spawner) -> ! {
         .with_latch_time_after_zero(5000)
         .with_latch_time_before_next_zero(500)
         .with_min_latch_time(150)
-        .with_perceived_zero_brightness(20)
-        .with_perceived_full_brightness(36)
+        .with_perceived_zero_brightness(51)
+        .with_perceived_full_brightness(105)
         .with_gamma_correction(GammaCorrection::Exponetinal);
 
-    let dimmer_config = LampDimmerChannelConfig::new(60, zero_cross, triac_gate, rmt.channel0)
-        .with_firing_timing(fire_timing);
+    info!("Detecting AC frequency");
+    let hz = loop {
+        let frequency_result =
+            zero_cross_analyzer::determine_frequency::<10>(&mut zero_cross).await;
+        let Ok(frequency) = frequency_result else {
+            warn!("Unable to determine frequency! Is zero cross pin connected? Retrying in 5s");
+            Timer::after_secs(5).await;
+            continue;
+        };
+
+        let hz = frequency.as_hz();
+
+        if hz < 40 || hz > 140 {
+            // Unsupported frequencies
+            continue;
+        }
+
+        break hz;
+    };
+
+    info!("Frequency of AC waveform: {}Hz", hz);
+    let dimmer_config =
+        LampDimmerChannelConfig::new(hz as u8, zero_cross, triac_gate, rmt.channel0)
+            .with_firing_timing(fire_timing);
 
     // Initalize our lamp dimmer
     let main_dimmer = LampDimmerChannel::create(spawner, dimmer_config);
@@ -217,6 +234,7 @@ async fn main(spawner: Spawner) -> ! {
         // let brightness = (brightness_f * lamp_dimmer::MAX_BRIGHTNESS as f32) as u8;
 
         let brightness = BRIGHTNESS.load(Ordering::Relaxed);
+        menu.update_brightness(brightness).await;
         main_dimmer.lock(|dimmer| {
             dimmer.borrow_mut().set_brightness(brightness);
         });

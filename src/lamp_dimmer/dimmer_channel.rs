@@ -36,7 +36,7 @@ pub struct LampDimmerChannel {
     tx_channel: NoopMutex<RefCell<DimmerTxChannel>>,
 }
 
-#[embassy_executor::task(pool_size = 1)]
+#[embassy_executor::task]
 async fn zero_cross_pin_loop(
     _spawner: Spawner,
     this: LampDimmerChannelReference,
@@ -108,11 +108,15 @@ impl LampDimmerChannel {
             tx_channel: NoopMutex::new(RefCell::new(DimmerTxChannel::HasChannel(tx_channel))),
         })));
 
-        spawner.must_spawn(zero_cross_pin_loop(
+        let spawner_result = spawner.spawn(zero_cross_pin_loop(
             spawner,
             dimmer_reference.clone(),
             config.zero_cross_pin,
         ));
+
+        if let Err(_spawn_error) = spawner_result {
+            return Err(());
+        }
 
         // Return a referance for rest of code
         Ok(dimmer_reference)
@@ -195,7 +199,7 @@ impl LampDimmerChannel {
         self.execute_pulse(pulses);
 
         self.event_counter.add_assign(1);
-        if self.event_counter.rem(120) == 0 {
+        if self.event_counter == 120 {
             info!(
                 "ZC: {}us | Fire angle: {}us | Pulse time: {}us | Brightness: {}%",
                 estimated_zero_cross_us, fire_angle_us, pulse_time_us, brightness

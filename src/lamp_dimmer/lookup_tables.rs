@@ -5,7 +5,7 @@ use crate::lamp_dimmer::MAX_BRIGHTNESS;
 use crate::lamp_dimmer::{FireTimingConfig, GammaCorrection};
 
 // Lookup table size for fire angle and fire pulse width
-const LOOKUP_TABLE_SIZE: usize = (MAX_BRIGHTNESS + 1) as usize;
+const LOOKUP_TABLE_SIZE: usize = MAX_BRIGHTNESS as usize + 1;
 // Can't allow more mircoseconds then the pulse width allows
 const MINIMUM_FREQUENCY: u8 = (1_000_000 / (PulseCode::MAX_LEN as u32 * 2) + 1) as u8;
 
