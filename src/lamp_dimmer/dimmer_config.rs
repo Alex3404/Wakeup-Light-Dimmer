@@ -1,6 +1,6 @@
 use esp_hal::Blocking;
 use esp_hal::gpio::{Input, Output};
-use esp_hal::rmt::TxChannelCreator;
+use esp_hal::rmt::{RxChannelCreator, TxChannelCreator};
 
 use crate::lamp_dimmer::{FireTimingConfig, MIN_BRIGHTNESS};
 
@@ -18,15 +18,17 @@ use crate::lamp_dimmer::{FireTimingConfig, MIN_BRIGHTNESS};
 /// A gamma correction defaults to linear
 /// - Use Exponental for LED bulbs it offers a more realistic dimming
 ///
-pub struct LampDimmerChannelConfig<RTMChannel>
+pub struct LampDimmerChannelConfig<TxChannel, RxChannel>
 where
-    RTMChannel: TxChannelCreator<'static, Blocking> + Sized,
+    TxChannel: TxChannelCreator<'static, Blocking> + Sized,
+    RxChannel: RxChannelCreator<'static, Blocking> + Sized,
 {
     // Required fields
     pub(in crate::lamp_dimmer) frequency: u8,
     pub(in crate::lamp_dimmer) gate_output_pin: Output<'static>,
     pub(in crate::lamp_dimmer) zero_cross_pin: Input<'static>,
-    pub(in crate::lamp_dimmer) rmt_channel: RTMChannel,
+    pub(in crate::lamp_dimmer) tx_channel: TxChannel,
+    pub(in crate::lamp_dimmer) rx_channel: RxChannel,
 
     /// Defaults to 0
     pub(in crate::lamp_dimmer) starting_brightness: u8,
@@ -34,21 +36,24 @@ where
     pub(in crate::lamp_dimmer) fire_timing_config: FireTimingConfig,
 }
 
-impl<RTMChannel> LampDimmerChannelConfig<RTMChannel>
+impl<TxChannel, RxChannel> LampDimmerChannelConfig<TxChannel, RxChannel>
 where
-    RTMChannel: TxChannelCreator<'static, Blocking> + Sized,
+    TxChannel: TxChannelCreator<'static, Blocking> + Sized,
+    RxChannel: RxChannelCreator<'static, Blocking> + Sized,
 {
     pub fn new(
         frequency: u8,
         zero_cross_pin: Input<'static>,
         gate_output_pin: Output<'static>,
-        rmt_channel: RTMChannel,
+        tx_channel: TxChannel,
+        rx_channel: RxChannel,
     ) -> Self {
         Self {
             frequency,
             zero_cross_pin,
             gate_output_pin,
-            rmt_channel,
+            tx_channel,
+            rx_channel,
             starting_brightness: MIN_BRIGHTNESS,
             // Choose some pretty basic starting
             // values that should work well in most cases

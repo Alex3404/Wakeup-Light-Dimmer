@@ -1,6 +1,4 @@
-use core::time::Duration;
 use core::u16;
-use log::warn;
 
 use crate::lamp_dimmer::MAX_BRIGHTNESS;
 

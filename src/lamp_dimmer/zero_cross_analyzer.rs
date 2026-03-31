@@ -1,8 +1,6 @@
 use crate::rolling_average::TimeRollingAverage;
 use embassy_time::{Duration, Instant, WithTimeout};
-use embedded_hal_async::digital::Wait;
 use esp_hal::{gpio::Input, time::Rate};
-use esp_println::println;
 
 pub async fn determine_frequency<const SAMPLES: usize>(
     zero_cross_pin: &mut Input<'static>,

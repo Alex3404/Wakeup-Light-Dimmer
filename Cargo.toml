@@ -8,6 +8,20 @@ version = "0.1.0"
 name = "arduino-esp32-dimmer"
 path = "./src/bin/main.rs"
 
+[patch."https://github.com/esp-rs/esp-pacs"]
+esp32s3 = { git = "https://github.com/Alex3404/esp-pacs-mcpwm.git", rev = "cc79498" }
+
+# Patch for the updated esp hal created by me
+[patch.crates-io]
+esp-alloc = { git = "https://github.com/Alex3404/esp-hal-mcpwm-cap.git", rev = "848a5e8c" }
+esp-backtrace = { git = "https://github.com/Alex3404/esp-hal-mcpwm-cap.git", rev = "848a5e8c" }
+esp-bootloader-esp-idf = { git = "https://github.com/Alex3404/esp-hal-mcpwm-cap.git", rev = "848a5e8c" }
+esp-hal = { git = "https://github.com/Alex3404/esp-hal-mcpwm-cap.git", rev = "848a5e8c" }
+esp-println = { git = "https://github.com/Alex3404/esp-hal-mcpwm-cap.git", rev = "848a5e8c" }
+esp-radio = { git = "https://github.com/Alex3404/esp-hal-mcpwm-cap.git", rev = "848a5e8c" }
+esp-rtos = { git = "https://github.com/Alex3404/esp-hal-mcpwm-cap.git", rev = "848a5e8c" }
+esp-storage = { git = "https://github.com/Alex3404/esp-hal-mcpwm-cap.git", rev = "848a5e8c" }
+
 [dependencies]
 esp-hal = { version = "~1.0", features = ["esp32s3", "log-04", "unstable"] }
 
@@ -51,25 +65,13 @@ esp-radio = { version = "0.17.0", features = [
   "esp-alloc",
   "esp32s3",
   "log-04",
-  "smoltcp",
   "unstable",
   "wifi",
 ] }
-smoltcp = { version = "0.12.0", default-features = false, features = [
-  "log",
-  "medium-ethernet",
-  "multicast",
-  "proto-dhcpv4",
-  "proto-dns",
-  "proto-ipv4",
-  "socket-dns",
-  "socket-icmp",
-  "socket-raw",
-  "socket-tcp",
-  "socket-udp",
-] }
+trouble-host = { version = "0.6.0", features = ["default-packet-pool-mtu-255"] }
 
 embassy-time-driver = "0.2.2"
+embassy-futures = "0.1.2"
 critical-section = "1.2.0"
 static_cell = "2.1.1"
 libm = "0.2.16"

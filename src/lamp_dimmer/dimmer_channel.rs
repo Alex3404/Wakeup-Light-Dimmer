@@ -2,7 +2,7 @@ use crate::lamp_dimmer::lookup_tables::LookupTables;
 use crate::lamp_dimmer::{LampDimmerChannelConfig, MAX_BRIGHTNESS};
 use crate::rolling_average::TimeRollingAverage;
 
-use core::ops::{AddAssign, Rem};
+use core::ops::AddAssign;
 use core::option::Option;
 use core::option::Option::{None, Some};
 
@@ -10,9 +10,11 @@ use core::cell::RefCell;
 use core::u16;
 use embassy_executor::Spawner;
 use embassy_sync::blocking_mutex::NoopMutex;
-use embassy_time::{Duration, Instant, WithTimeout};
+use embassy_time::Instant;
 use esp_hal::gpio::{Input, Level, Output};
-use esp_hal::rmt::{ContinuousTxTransaction, PulseCode, Tx, TxChannelConfig, TxChannelCreator};
+use esp_hal::rmt::{
+    ContinuousTxTransaction, PulseCode, RxChannelCreator, Tx, TxChannelConfig, TxChannelCreator,
+};
 use esp_hal::{Blocking, rmt};
 
 extern crate alloc;
@@ -84,15 +86,16 @@ async fn zero_cross_pin_loop(
 /// the phase angle for the next cycle.
 ///
 impl LampDimmerChannel {
-    pub fn create<Channel>(
+    pub fn create<TxChannel, RxChannel>(
         spawner: Spawner,
-        config: LampDimmerChannelConfig<Channel>,
+        config: LampDimmerChannelConfig<TxChannel, RxChannel>,
     ) -> Result<LampDimmerChannelReference, ()>
     where
-        Channel: TxChannelCreator<'static, Blocking> + Sized,
+        TxChannel: TxChannelCreator<'static, Blocking> + Sized,
+        RxChannel: RxChannelCreator<'static, Blocking> + Sized,
     {
         let tx_channel =
-            LampDimmerChannel::configure_rmt_channel(config.rmt_channel, config.gate_output_pin)?;
+            LampDimmerChannel::configure_tx_channel(config.tx_channel, config.gate_output_pin)?;
 
         let lookup_tables = config
             .fire_timing_config
@@ -126,7 +129,7 @@ impl LampDimmerChannel {
         self.brightness = brightness.clamp(0, MAX_BRIGHTNESS);
     }
 
-    fn configure_rmt_channel<Channel>(
+    fn configure_tx_channel<Channel>(
         rmt_channel: Channel,
         signal_output: Output<'static>,
     ) -> Result<rmt::Channel<'static, Blocking, Tx>, ()>
@@ -139,12 +142,12 @@ impl LampDimmerChannel {
             .with_carrier_modulation(false)
             .with_clk_divider(80); // For 1us
 
-        let tx_channel = rmt_channel.configure_tx(signal_output, tx_config);
+        let tx_channel = rmt_channel.configure_tx(&tx_config);
         let Ok(tx_channel) = tx_channel else {
             return Err(());
         };
 
-        Ok(tx_channel)
+        Ok(tx_channel.with_pin(signal_output))
     }
 
     fn execute_pulse<const N: usize>(&mut self, data: [PulseCode; N]) {
@@ -177,7 +180,7 @@ impl LampDimmerChannel {
         });
     }
 
-    fn handle_dimming(&mut self, estimated_zero_cross_us: u64, zero_cross_pulse: u64) {
+    fn handle_dimming(&mut self, estimated_zero_cross_us: u64) {
         // Lookup table fast and easy
         let brightness = self.brightness;
         let lookup = &self.lookup_tables;
@@ -212,7 +215,7 @@ impl LampDimmerChannel {
         let delta = time.elapsed().as_micros();
         let average_high = self.avg_time_high.average();
         let estimated_zero_cross_us = (average_high / 2).as_micros().saturating_sub(delta);
-        self.handle_dimming(estimated_zero_cross_us, average_high.as_micros());
+        self.handle_dimming(estimated_zero_cross_us);
 
         // Update the last edge
         self.last_edge = Some(time);
