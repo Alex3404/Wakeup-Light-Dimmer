@@ -11,6 +11,7 @@ use alloc::boxed::Box;
 use critical_section::Mutex;
 use embassy_executor::Spawner;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
+use enumset::EnumSet;
 use esp_backtrace as _;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -32,11 +33,12 @@ use static_cell::StaticCell;
 use trouble_host::peripheral;
 
 use core::{
-    cell::RefCell,
+    cell::{Ref, RefCell},
     sync::atomic::{AtomicU8, Ordering},
 };
 
 use embassy_time::Timer;
+use esp_hal::mcpwm::{operator::PwmPin, timer::Timer as MCPWMTimer};
 use esp_hal::{
     Blocking,
     clock::CpuClock,
@@ -48,13 +50,15 @@ use esp_hal::{
     i2c::master::I2c,
     interrupt::software::SoftwareInterruptControl,
     mcpwm::{
-        McPwm, PeripheralClockConfig, PwmPeripheral,
-        capture::{CaptureEdge, CaptureMode},
+        Instance, McPwm, PeripheralClockConfig,
+        capture::{CaptureChannel, CaptureChannelConfig, CaptureEdge, CaptureMode},
+        operator::{PwmActions, PwmPinConfig, PwmUpdateMethod, UpdateAction},
+        timer::{CounterDirection, PwmWorkingMode, TimerClockConfig, TimerEvent},
     },
     peripherals::{GPIO, MCPWM0, Peripherals, RMT},
     rmt::Rmt,
     system::Stack,
-    time::{Instant, Rate},
+    time::{Duration, Instant, Rate},
     timer::timg::TimerGroup,
 };
 use esp_hal::{i2c::master::AnyI2c, i2c::master::Config as I2CConfig};
@@ -87,10 +91,52 @@ struct DimmerIO<'d> {
 
 // Drivers for second core to claim after initalization on main core
 static IC2_DRIVER: Signal<CriticalSectionRawMutex, I2c<'static, Blocking>> = Signal::new();
-// static MCPWM_DRIVER: Signal<CriticalSectionRawMutex, McPwm<'static, MCPWM0<'static>>> =
-//     Signal::new();
+static MCPWM_PERF: Signal<CriticalSectionRawMutex, MCPWM0<'static>> = Signal::new();
 static ROTERY_IO: Signal<CriticalSectionRawMutex, RoteryIO<'static>> = Signal::new();
 static DIMMER_IO: Signal<CriticalSectionRawMutex, DimmerIO<'static>> = Signal::new();
+
+struct TempDimmer {
+    timer: MCPWMTimer<'static, 0, MCPWM0<'static>>,
+    pwm_pin: PwmPin<'static, MCPWM0<'static>, 0, true>,
+    capture: CaptureChannel<'static, 0, MCPWM0<'static>>,
+}
+
+static TEMP_DIMMER: Mutex<RefCell<Option<TempDimmer>>> = Mutex::new(RefCell::new(None));
+
+#[handler]
+fn mcpwm_interrupt() {
+    critical_section::with(|cs| {
+        let mut dimmer = TEMP_DIMMER.borrow_ref_mut(cs);
+        let Some(ref mut dimmer) = *dimmer else {
+            return;
+        };
+
+        let timer_int = dimmer.timer.interrupts();
+        if !timer_int.is_empty() {
+            for interrupt in timer_int {
+                match interrupt {
+                    TimerEvent::TimerEqualZero => {
+                        println!("Hello")
+                    }
+                    TimerEvent::TimerEqualPeriod => {
+                        println!("Hello 2")
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // Average zero cross time
+        if dimmer.capture.is_interupt_set() {
+            let event = dimmer.capture.get_event();
+            let zero_cross_time = event.get_time();
+
+            println!("Zero_cross: {}us", zero_cross_time / 80);
+
+            dimmer.capture.clear_interrupt();
+        }
+    })
+}
 
 #[embassy_executor::task]
 async fn app_initalize(spawner: Spawner) {
@@ -165,6 +211,83 @@ async fn app_initalize(spawner: Spawner) {
         panic!("Failed to intialize menu")
     };
 
+    let mcpwm = MCPWM_PERF.wait().await;
+
+    let config_result = PeripheralClockConfig::with_frequency(Rate::from_mhz(1));
+    let Ok(clock_config) = config_result else {
+        let err = config_result.err().unwrap();
+        panic!("Failed to create MCPWM driver! {:?}", err)
+    };
+
+    let zero_cross = zero_cross.peripheral_input();
+    let gate = gate.into_peripheral_output();
+
+    // Create mcpwm driver with interrupt handler
+    let mut mcpwm = McPwm::new(mcpwm, clock_config.clone());
+    mcpwm.set_interrupt_handler(mcpwm_interrupt);
+    info!("Created mcpwm");
+
+    // Set sync event on falling edges ( before zero cross event )
+    mcpwm.sync0.set_invert(true);
+    mcpwm.sync0.set_signal(zero_cross.clone());
+
+    // Capture rising edges phase aligned with last zero edge
+    let capture_config = CaptureChannelConfig::default().with_capture_mode(CaptureMode::RisingEdge);
+
+    // Capture is used to give a average for zero cross pulse length
+    let mut capture = mcpwm
+        .capture0
+        .configure(capture_config)
+        .with_signal_input(zero_cross.clone());
+
+    // Reset capture timer on falling edges
+    mcpwm.capture_timer.set_sync(&mcpwm.sync0);
+    mcpwm.capture_timer.set_sync_phase(0); // Reset to zero on sync
+
+    // Setup timer
+    mcpwm.timer0.set_sync(&mcpwm.sync0);
+    mcpwm.timer0.set_sync_phase(0);
+    mcpwm
+        .timer0
+        .set_sync_counter_direction(CounterDirection::Increasing);
+
+    // Start timers with defaults
+    let timer_config =
+        clock_config.timer_clock_with_prescaler(u16::MAX, PwmWorkingMode::Increase, 0);
+    mcpwm.timer0.start(timer_config);
+
+    info!("Lol??");
+    // Listen to capture and timer equal period events
+    let mut events = EnumSet::new();
+    events.insert(TimerEvent::TimerEqualPeriod);
+    events.insert(TimerEvent::TimerEqualZero);
+    info!("Lol??");
+    mcpwm.timer0.listen(events);
+
+    info!("Lol??");
+
+    // Enable capture
+    mcpwm.capture_timer.start();
+    capture.listen();
+    capture.set_enable(true);
+
+    info!("Lol??");
+    // Setup operator
+    mcpwm.operator0.set_timer(&mcpwm.timer0);
+
+    // Configure pwm pin to be idle
+    let pwm_pin_config = PwmPinConfig::new(PwmActions::empty(), PwmUpdateMethod::SYNC_IMMEDIATLY);
+    let pwm_pin = mcpwm.operator0.with_pin_a(gate, pwm_pin_config);
+
+    info!("Mcpwm configured!");
+    critical_section::with(|cs| {
+        *TEMP_DIMMER.borrow_ref_mut(cs) = Some(TempDimmer {
+            capture: capture,
+            timer: mcpwm.timer0,
+            pwm_pin,
+        });
+    });
+
     // Spawn some tasks
     let _ = spawner;
 
@@ -216,28 +339,6 @@ async fn app_initalize(spawner: Spawner) {
 fn app_core(spawner: Spawner) -> () {
     // Run app initalize
     spawner.must_spawn(app_initalize(spawner));
-}
-
-static MCPWM: Mutex<RefCell<Option<McPwm<'static, MCPWM0>>>> = Mutex::new(RefCell::new(None));
-#[handler]
-fn mcpwm_interrupt() {
-    critical_section::with(|cs| {
-        let mut mcpwm = MCPWM.borrow_ref_mut(cs);
-        let Some(ref mut mcpwm) = *mcpwm else {
-            return;
-        };
-
-        if mcpwm.capture0.is_interupt_set() {
-            let event = mcpwm.capture0.get_event();
-            println!(
-                "Capture: {:?}, {}",
-                event.get_edge(),
-                event.get_time() / 160
-            );
-
-            mcpwm.capture0.clear_interrupt();
-        }
-    })
 }
 
 #[allow(
@@ -307,23 +408,13 @@ async fn main(_spawner: Spawner) -> ! {
     // Using Pull::None as Pull::Up changes the total resistance of the
     // zero cross detection circitry. Changining the timing for the zero cross pulse.
     // Since it adds the internal pull up resistance in parellel with the on board pull up resistor
-    let zero_cross = Input::new(peripherals.GPIO6, no_pullup);
-    // DIMMER_IO.signal(DimmerIO {
-    //     zero_cross: Input::new(peripherals.GPIO6, no_pullup),
-    //     gate: Output::new(peripherals.GPIO5, Level::Low, OutputConfig::default()),
-    // });
+    DIMMER_IO.signal(DimmerIO {
+        zero_cross: Input::new(peripherals.GPIO6, no_pullup),
+        gate: Output::new(peripherals.GPIO5, Level::Low, OutputConfig::default()),
+    });
 
     // Create MCPWM driver give to app core
-    println!("Mcpwm driver!!");
-    let mut mcpwm = initlaize_mcpwm_driver(peripherals.MCPWM0);
-    mcpwm.set_interrupt_handler(mcpwm_interrupt);
-    println!("Capture start!!");
-    mcpwm.capture_timer.start();
-    mcpwm.capture0.set_signal_capture(zero_cross);
-    mcpwm.capture0.listen(CaptureMode::AnyEdge);
-    mcpwm.capture0.set_enable(true);
-    println!("Capture listen!!");
-    critical_section::with(|cs| MCPWM.replace(cs, Some(mcpwm)));
+    MCPWM_PERF.signal(peripherals.MCPWM0);
 
     loop {}
 }
@@ -345,18 +436,4 @@ where
     };
 
     i2c.with_scl(scl).with_sda(sda)
-}
-
-fn initlaize_mcpwm_driver<'d, PWM>(mcpwm: PWM) -> McPwm<'d, PWM>
-where
-    PWM: PwmPeripheral,
-{
-    // 1 microsecond clock
-    let config_result = PeripheralClockConfig::with_frequency(Rate::from_mhz(1));
-    let Ok(clock_config) = config_result else {
-        let err = config_result.err().unwrap();
-        panic!("Failed to create MCPWM driver! {:?}", err)
-    };
-
-    McPwm::new(mcpwm, clock_config)
 }

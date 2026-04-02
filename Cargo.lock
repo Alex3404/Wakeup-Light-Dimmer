@@ -28,6 +28,7 @@ dependencies = [
  "embedded-hal-bus",
  "embedded-io 0.7.1",
  "embedded-io-async 0.7.0",
+ "enumset",
  "esp-alloc",
  "esp-backtrace",
  "esp-bootloader-esp-idf",
@@ -787,7 +788,6 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 [[package]]
 name = "esp-alloc"
 version = "0.9.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "allocator-api2",
  "cfg-if",
@@ -802,7 +802,6 @@ dependencies = [
 [[package]]
 name = "esp-backtrace"
 version = "0.18.1"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -818,7 +817,6 @@ dependencies = [
 [[package]]
 name = "esp-bootloader-esp-idf"
 version = "0.4.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -835,7 +833,6 @@ dependencies = [
 [[package]]
 name = "esp-config"
 version = "0.6.1"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "document-features",
  "esp-metadata-generated",
@@ -847,7 +844,6 @@ dependencies = [
 [[package]]
 name = "esp-hal"
 version = "1.0.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "bitfield 0.19.4",
  "bitflags 2.11.0",
@@ -902,7 +898,6 @@ dependencies = [
 [[package]]
 name = "esp-hal-procmacros"
 version = "0.21.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "document-features",
  "object",
@@ -916,12 +911,10 @@ dependencies = [
 [[package]]
 name = "esp-metadata-generated"
 version = "0.3.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 
 [[package]]
 name = "esp-phy"
 version = "0.1.1"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -938,7 +931,6 @@ dependencies = [
 [[package]]
 name = "esp-println"
 version = "0.16.1"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "document-features",
  "esp-metadata-generated",
@@ -950,7 +942,6 @@ dependencies = [
 [[package]]
 name = "esp-radio"
 version = "0.17.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "allocator-api2",
  "bt-hci",
@@ -993,7 +984,6 @@ dependencies = [
 [[package]]
 name = "esp-radio-rtos-driver"
 version = "0.2.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "cfg-if",
  "esp-sync",
@@ -1003,7 +993,6 @@ dependencies = [
 [[package]]
 name = "esp-riscv-rt"
 version = "0.13.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "document-features",
  "riscv",
@@ -1013,7 +1002,6 @@ dependencies = [
 [[package]]
 name = "esp-rom-sys"
 version = "0.1.3"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -1023,7 +1011,6 @@ dependencies = [
 [[package]]
 name = "esp-rtos"
 version = "0.2.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "allocator-api2",
  "cfg-if",
@@ -1049,7 +1036,6 @@ dependencies = [
 [[package]]
 name = "esp-sync"
 version = "0.1.1"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -1132,7 +1118,6 @@ dependencies = [
 [[package]]
 name = "esp32"
 version = "0.39.0"
-source = "git+https://github.com/Alex3404/esp-pacs-mcpwm.git?rev=cc79498#cc794983bf42c2605578ff88db1b0667678f6c0f"
 dependencies = [
  "critical-section",
  "vcell",
@@ -1141,7 +1126,6 @@ dependencies = [
 [[package]]
 name = "esp32c2"
 version = "0.28.0"
-source = "git+https://github.com/esp-rs/esp-pacs?rev=663c742#663c742c6e5b51df96253594661bca866f758af8"
 dependencies = [
  "critical-section",
  "vcell",
@@ -1150,7 +1134,6 @@ dependencies = [
 [[package]]
 name = "esp32c3"
 version = "0.31.0"
-source = "git+https://github.com/esp-rs/esp-pacs?rev=663c742#663c742c6e5b51df96253594661bca866f758af8"
 dependencies = [
  "critical-section",
  "vcell",
@@ -1159,7 +1142,6 @@ dependencies = [
 [[package]]
 name = "esp32c6"
 version = "0.22.0"
-source = "git+https://github.com/Alex3404/esp-pacs-mcpwm.git?rev=cc79498#cc794983bf42c2605578ff88db1b0667678f6c0f"
 dependencies = [
  "critical-section",
  "vcell",
@@ -1168,7 +1150,6 @@ dependencies = [
 [[package]]
 name = "esp32h2"
 version = "0.18.0"
-source = "git+https://github.com/esp-rs/esp-pacs?rev=663c742#663c742c6e5b51df96253594661bca866f758af8"
 dependencies = [
  "critical-section",
  "vcell",
@@ -1177,7 +1158,6 @@ dependencies = [
 [[package]]
 name = "esp32s2"
 version = "0.30.0"
-source = "git+https://github.com/esp-rs/esp-pacs?rev=663c742#663c742c6e5b51df96253594661bca866f758af8"
 dependencies = [
  "critical-section",
  "vcell",
@@ -1186,7 +1166,6 @@ dependencies = [
 [[package]]
 name = "esp32s3"
 version = "0.34.0"
-source = "git+https://github.com/Alex3404/esp-pacs-mcpwm.git?rev=cc79498#cc794983bf42c2605578ff88db1b0667678f6c0f"
 dependencies = [
  "critical-section",
  "vcell",
@@ -2170,7 +2149,6 @@ dependencies = [
 [[package]]
 name = "xtensa-lx"
 version = "0.13.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "critical-section",
 ]
@@ -2178,7 +2156,6 @@ dependencies = [
 [[package]]
 name = "xtensa-lx-rt"
 version = "0.21.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "document-features",
  "xtensa-lx",
@@ -2188,7 +2165,6 @@ dependencies = [
 [[package]]
 name = "xtensa-lx-rt-proc-macros"
 version = "0.5.0"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2218,4 +2194,3 @@ dependencies = [
 [[patch.unused]]
 name = "esp-storage"
 version = "0.8.1"
-source = "git+https://github.com/Alex3404/esp-hal-mcpwm-cap.git?rev=848a5e8c#848a5e8c4444c34af0de1abb3a234586c61a0a2e"
