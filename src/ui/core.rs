@@ -35,7 +35,7 @@ where
     Interface: AsyncWriteOnlyDataCommand,
 {
     display: Ssd1306Async<Interface, Size, BufferedGraphicsModeAsync<Size>>,
-    menu_text_style: MonoTextStyle<'static, BinaryColor>,
+    _menu_text_style: MonoTextStyle<'static, BinaryColor>,
     large_text_style: MonoTextStyle<'static, BinaryColor>,
     brightness: u8,
 }
@@ -94,7 +94,7 @@ where
 
         Ok(Self {
             display,
-            menu_text_style,
+            _menu_text_style: menu_text_style,
             large_text_style,
             brightness: 0,
         })

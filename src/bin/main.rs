@@ -19,10 +19,7 @@ use esp_backtrace as _;
 esp_bootloader_esp_idf::esp_app_desc!();
 
 use arduino_esp32_dimmer::{
-    lamp_dimmer::{
-        self, FireTimingConfig, GammaCorrection, LampDimmerChannel, LampDimmerChannelConfig,
-        zero_cross_analyzer,
-    },
+    lamp_dimmer::{self, zero_cross_analyzer},
     rotery_decoder::{Rotation, RoteryDecoder, RoteryDecoderConfig},
     ui,
 };
@@ -30,15 +27,18 @@ use esp_println::println;
 use esp_radio::ble::controller::BleConnector;
 use esp_rtos::embassy::Executor;
 use static_cell::StaticCell;
-use trouble_host::peripheral;
 
 use core::{
-    cell::{Ref, RefCell},
+    cell::RefCell,
     sync::atomic::{AtomicU8, Ordering},
 };
 
 use embassy_time::Timer;
-use esp_hal::mcpwm::{operator::PwmPin, timer::Timer as MCPWMTimer};
+use esp_hal::mcpwm::{
+    capture::CaptureTimerConfig,
+    operator::{PwmPin, UpdateAction},
+    timer::Timer as MCPWMTimer,
+};
 use esp_hal::{
     Blocking,
     clock::CpuClock,
@@ -50,22 +50,21 @@ use esp_hal::{
     i2c::master::I2c,
     interrupt::software::SoftwareInterruptControl,
     mcpwm::{
-        Instance, McPwm, PeripheralClockConfig,
-        capture::{CaptureChannel, CaptureChannelConfig, CaptureEdge, CaptureMode},
-        operator::{PwmActions, PwmPinConfig, PwmUpdateMethod, UpdateAction},
-        timer::{CounterDirection, PwmWorkingMode, TimerClockConfig, TimerEvent},
+        McPwm, PeripheralClockConfig,
+        capture::{CaptureChannel, CaptureChannelConfig, CaptureMode},
+        operator::{PwmActions, PwmPinConfig, PwmUpdateMethod},
+        timer::{PeriodUpdatingMethod, PwmWorkingMode, TimerEvent},
     },
-    peripherals::{GPIO, MCPWM0, Peripherals, RMT},
-    rmt::Rmt,
+    peripherals::MCPWM0,
     system::Stack,
-    time::{Duration, Instant, Rate},
+    time::Rate,
     timer::timg::TimerGroup,
 };
 use esp_hal::{i2c::master::AnyI2c, i2c::master::Config as I2CConfig};
 
 extern crate alloc;
 use log::{info, warn};
-use ui::{DimmerInterface, UserInterface};
+use ui::UserInterface;
 
 static BRIGHTNESS: AtomicU8 = AtomicU8::new(0);
 fn rotated(_spawner: Spawner, rotation: Rotation) {
@@ -96,7 +95,7 @@ static ROTERY_IO: Signal<CriticalSectionRawMutex, RoteryIO<'static>> = Signal::n
 static DIMMER_IO: Signal<CriticalSectionRawMutex, DimmerIO<'static>> = Signal::new();
 
 struct TempDimmer {
-    timer: MCPWMTimer<'static, 0, MCPWM0<'static>>,
+    timer0: MCPWMTimer<'static, 0, MCPWM0<'static>>,
     pwm_pin: PwmPin<'static, MCPWM0<'static>, 0, true>,
     capture: CaptureChannel<'static, 0, MCPWM0<'static>>,
 }
@@ -111,27 +110,35 @@ fn mcpwm_interrupt() {
             return;
         };
 
-        let timer_int = dimmer.timer.interrupts();
-        if !timer_int.is_empty() {
-            for interrupt in timer_int {
-                match interrupt {
-                    TimerEvent::TimerEqualZero => {
-                        println!("Hello")
-                    }
-                    TimerEvent::TimerEqualPeriod => {
-                        println!("Hello 2")
-                    }
-                    _ => {}
-                }
-            }
-        }
-
         // Average zero cross time
-        if dimmer.capture.is_interupt_set() {
+        if dimmer.capture.is_interrupt_set() {
             let event = dimmer.capture.get_event();
-            let zero_cross_time = event.get_time();
+            let pulse_width = event.time() / 80;
+            let zero_cross_time = (pulse_width / 2) as u16;
 
-            println!("Zero_cross: {}us", zero_cross_time / 80);
+            const TRIGGER_TIME: u16 = 3000;
+            const PULSE_WIDTH: u16 = 2000;
+
+            // Only when brightness changes we need to update any of the timings.
+            // So awesome
+
+            // Update period for next cycle based on the zero cross
+            let trigger_ticks = zero_cross_time.saturating_add(TRIGGER_TIME);
+
+            // Easy toggle
+            dimmer.pwm_pin.set_actions(
+                PwmActions::empty()
+                    .on_up_counting_timer_equals_timestamp(UpdateAction::SetHigh)
+                    .on_down_counting_timer_equals_period(UpdateAction::SetLow),
+            );
+
+            // Output is set high on timestamp
+            dimmer.pwm_pin.set_timestamp(trigger_ticks);
+
+            // Output is set low on period
+            dimmer
+                .timer0
+                .update_period(trigger_ticks.saturating_add(PULSE_WIDTH));
 
             dimmer.capture.clear_interrupt();
         }
@@ -140,6 +147,7 @@ fn mcpwm_interrupt() {
 
 #[embassy_executor::task]
 async fn app_initalize(spawner: Spawner) {
+    println!("App core initalizing!");
     // Get rotery decoder IO
     let rotery_inputs = ROTERY_IO.wait().await;
     let (clock, rotate, switch) = (
@@ -207,7 +215,7 @@ async fn app_initalize(spawner: Spawner) {
     // Wait for main core to create I2C driver
     let i2c = IC2_DRIVER.wait().await.into_async();
     let menu_result = UserInterface::create(i2c).await;
-    let Ok(mut menu) = menu_result else {
+    let Ok(mut _menu) = menu_result else {
         panic!("Failed to intialize menu")
     };
 
@@ -231,6 +239,8 @@ async fn app_initalize(spawner: Spawner) {
     mcpwm.sync0.set_invert(true);
     mcpwm.sync0.set_signal(zero_cross.clone());
 
+    info!("Sync configured!");
+
     // Capture rising edges phase aligned with last zero edge
     let capture_config = CaptureChannelConfig::default().with_capture_mode(CaptureMode::RisingEdge);
 
@@ -239,52 +249,49 @@ async fn app_initalize(spawner: Spawner) {
         .capture0
         .configure(capture_config)
         .with_signal_input(zero_cross.clone());
+    capture.set_enable(true);
+    info!("Capture channel configured!");
 
     // Reset capture timer on falling edges
-    mcpwm.capture_timer.set_sync(&mcpwm.sync0);
-    mcpwm.capture_timer.set_sync_phase(0); // Reset to zero on sync
+    let cap_timer_config = CaptureTimerConfig::default().with_sync_phase(0);
+    mcpwm.capture_timer.set_config(cap_timer_config);
+    mcpwm.capture_timer.set_sync_in(&mcpwm.sync0);
 
-    // Setup timer
-    mcpwm.timer0.set_sync(&mcpwm.sync0);
-    mcpwm.timer0.set_sync_phase(0);
-    mcpwm
-        .timer0
-        .set_sync_counter_direction(CounterDirection::Increasing);
+    info!("Capture timer configured!");
 
     // Start timers with defaults
-    let timer_config =
-        clock_config.timer_clock_with_prescaler(u16::MAX, PwmWorkingMode::Increase, 0);
-    mcpwm.timer0.start(timer_config);
+    let timer_config = clock_config
+        .timer_clock_with_prescaler(u16::MAX, PwmWorkingMode::Increase, 0)
+        .with_sync_phase(0)
+        .with_period_updating_method(PeriodUpdatingMethod::Sync);
+    mcpwm.timer0.set_sync_in(&mcpwm.sync0);
+    mcpwm.timer0.set_config(timer_config);
 
-    info!("Lol??");
-    // Listen to capture and timer equal period events
-    let mut events = EnumSet::new();
-    events.insert(TimerEvent::TimerEqualPeriod);
-    events.insert(TimerEvent::TimerEqualZero);
-    info!("Lol??");
-    mcpwm.timer0.listen(events);
+    info!("PWM timer configured!");
 
-    info!("Lol??");
-
-    // Enable capture
-    mcpwm.capture_timer.start();
-    capture.listen();
-    capture.set_enable(true);
-
-    info!("Lol??");
     // Setup operator
     mcpwm.operator0.set_timer(&mcpwm.timer0);
 
     // Configure pwm pin to be idle
-    let pwm_pin_config = PwmPinConfig::new(PwmActions::empty(), PwmUpdateMethod::SYNC_IMMEDIATLY);
+    let pwm_pin_config = PwmPinConfig::new(PwmActions::empty(), PwmUpdateMethod::SYNC_ON_ZERO);
     let pwm_pin = mcpwm.operator0.with_pin_a(gate, pwm_pin_config);
 
-    info!("Mcpwm configured!");
+    info!("Operator configured!");
+
     critical_section::with(|cs| {
+        capture.listen();
+        info!("Listened to capture events!");
+
+        // Enable Timers
+        mcpwm.capture_timer.start();
+        mcpwm.timer0.start();
+
+        info!("Timers started!");
+
         *TEMP_DIMMER.borrow_ref_mut(cs) = Some(TempDimmer {
             capture: capture,
-            timer: mcpwm.timer0,
-            pwm_pin,
+            timer0: mcpwm.timer0,
+            pwm_pin: pwm_pin,
         });
     });
 

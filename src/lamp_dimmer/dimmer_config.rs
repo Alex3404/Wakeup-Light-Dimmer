@@ -28,7 +28,7 @@ where
     pub(in crate::lamp_dimmer) gate_output_pin: Output<'static>,
     pub(in crate::lamp_dimmer) zero_cross_pin: Input<'static>,
     pub(in crate::lamp_dimmer) tx_channel: TxChannel,
-    pub(in crate::lamp_dimmer) rx_channel: RxChannel,
+    pub(in crate::lamp_dimmer) _rx_channel: RxChannel,
 
     /// Defaults to 0
     pub(in crate::lamp_dimmer) starting_brightness: u8,
@@ -53,7 +53,7 @@ where
             zero_cross_pin,
             gate_output_pin,
             tx_channel,
-            rx_channel,
+            _rx_channel: rx_channel,
             starting_brightness: MIN_BRIGHTNESS,
             // Choose some pretty basic starting
             // values that should work well in most cases

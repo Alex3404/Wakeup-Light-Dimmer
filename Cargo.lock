@@ -2190,7 +2190,3 @@ dependencies = [
  "quote",
  "syn 2.0.117",
 ]
-
-[[patch.unused]]
-name = "esp-storage"
-version = "0.8.1"

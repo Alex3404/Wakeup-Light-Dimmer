@@ -99,4 +99,3 @@ esp-hal = { path = "../esp-hal-mcpwm-cap/esp-hal" }
 esp-println = { path = "../esp-hal-mcpwm-cap/esp-println" }
 esp-radio = { path = "../esp-hal-mcpwm-cap/esp-radio" }
 esp-rtos = { path = "../esp-hal-mcpwm-cap/esp-rtos" }
-esp-storage = { path = "../esp-hal-mcpwm-cap/esp-storage" }
