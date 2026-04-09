@@ -6,12 +6,12 @@ use crate::lamp_dimmer::{
     DimmerChannel, DimmerChannelConfig, DimmerSettingsBuilder, MAX_BRIGHTNESS, MIN_BRIGHTNESS,
     TimingConfig,
 };
-use crate::ui;
+use crate::ui::{self, MenuControllerHandle};
 
 use core::cell::RefCell;
 use esp_hal::Async;
 use esp_hal::i2c::master::I2c;
-use log::trace;
+use log::info;
 use static_cell::StaticCell;
 
 use embassy_executor::Spawner;
@@ -24,7 +24,6 @@ use alloc::rc::{Rc, Weak};
 pub type AppHandle = Weak<NoopMutex<App>>;
 pub type StrongAppHandle = Rc<NoopMutex<App>>;
 pub type DimmerHandle = Rc<NoopMutex<RefCell<DimmerChannel>>>;
-pub type MenuControllerHandle = Rc<NoopMutex<RefCell<ui::MenuController>>>;
 
 static DEFAULT_TIMING_CONFIG: TimingConfig = TimingConfig::default()
     .with_min_latch_time(150)
@@ -70,11 +69,10 @@ impl App {
 
     async fn finish_initialization(&self) {
         // Finish initialization of submodules that require async setup
-        self.menu_controller
-            .borrow()
-            .borrow_mut()
-            .finish_initialization()
-            .await;
+        let mut menu_lock = self.menu_controller.write().await;
+        info!("Finishing menu controller initialization...");
+        menu_lock.finish_initialization().await;
+        drop(menu_lock);
     }
 
     /// Create a DimmerSettingsBuilder for configuring and previewing dimmer settings
@@ -117,9 +115,7 @@ fn initalize_dimmer(user_data: &UserData, dimmer_io: DimmerIO) -> DimmerHandle {
 }
 
 fn initalize_menu_controller(i2c: I2c<'static, Async>, app: AppHandle) -> MenuControllerHandle {
-    let menu_controller =
-        ui::MenuController::new(i2c, app).expect("Failed to create menu controller");
-    Rc::new(NoopMutex::new(RefCell::new(menu_controller)))
+    ui::MenuController::new(i2c, app).expect("Failed to create menu controller")
 }
 
 fn initalize_rotery_decoder(
@@ -138,7 +134,7 @@ fn initalize_rotery_decoder(
 }
 
 pub(super) async fn app_main(spawner: Spawner, peripherals: io::AppCorePeripherals) {
-    trace!("App main task started!");
+    info!("App main task started!");
 
     let mut user_data_storage = user_data::initalize(peripherals.flash).await;
     let loaded_user_data = user_data_storage.read().await;
@@ -149,6 +145,7 @@ pub(super) async fn app_main(spawner: Spawner, peripherals: io::AppCorePeriphera
         let rotery_decoder =
             initalize_rotery_decoder(spawner, peripherals.rotery_io, &menu_controller);
 
+        info!("App created!");
         NoopMutex::new(App {
             rotery_decoder,
             main_dimmer,
@@ -171,6 +168,15 @@ async fn settings_propagator(app: Rc<NoopMutex<App>>, mut user_data_storage: Use
     loop {
         user_data.signal().wait().await; // Wait for any changes to user data
         user_data.signal().reset(); // Reset signal to wait for next change
+        info!("User data changed, propagating settings...");
+
+        app.lock(|app| {
+            app.main_dimmer.lock(|dimmer| {
+                dimmer
+                    .borrow_mut()
+                    .set_state(user_data.get(|user_data| user_data.dimmer_state));
+            });
+        });
 
         let updated_user_data = user_data.get(|user_data| user_data.clone());
         user_data_storage

@@ -1,12 +1,13 @@
 use crate::input::RoteryInterface;
-use crate::ui::MenuController;
+use crate::ui::{MenuController, internal::MenuControllerInternal};
+
 use embassy_executor::Spawner;
-use embassy_sync::blocking_mutex::NoopMutex;
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, rwlock::RwLock};
 use embassy_time::Instant;
 
 extern crate alloc;
 use alloc::rc::{Rc, Weak};
-use core::cell::RefCell;
+use log::info;
 
 pub enum InputEvent {
     ButtonClick,
@@ -17,12 +18,12 @@ pub enum InputEvent {
 
 /// RoteryInterface implementation that wraps MenuController
 pub struct MenuControllerInterface {
-    menu: Weak<NoopMutex<RefCell<MenuController>>>,
+    menu: Weak<RwLock<NoopRawMutex, MenuController>>,
     pressed_time: Option<Instant>,
 }
 
 impl MenuControllerInterface {
-    pub(super) fn new(menu: Weak<NoopMutex<RefCell<MenuController>>>) -> Self {
+    pub(super) fn new(menu: Weak<RwLock<NoopRawMutex, MenuController>>) -> Self {
         Self {
             menu,
             pressed_time: None,
@@ -37,11 +38,12 @@ impl RoteryInterface for MenuControllerInterface {
             return;
         }
 
-        let Some(pressed_time) = self.pressed_time else {
+        let Some(pressed_time) = self.pressed_time.take() else {
             return;
         };
 
         let press_time = pressed_time.elapsed();
+        info!("Button released after {} ms", press_time.as_millis());
         let long_press = press_time.as_millis() > 1000;
 
         let Some(menu) = self.menu.upgrade() else {
@@ -77,8 +79,8 @@ impl RoteryInterface for MenuControllerInterface {
 }
 
 /// Task to handle menu input asynchronously
-#[embassy_executor::task(pool_size = 3)]
-async fn handle_menu_input(menu: Rc<NoopMutex<RefCell<MenuController>>>, input: InputEvent) {
-    let mut menu = menu.borrow().borrow_mut();
-    menu.handle_input(input).await;
+#[embassy_executor::task]
+async fn handle_menu_input(menu: Rc<RwLock<NoopRawMutex, MenuController>>, input: InputEvent) {
+    let mut menu_lock = menu.write().await;
+    menu_lock.handle_input(input).await;
 }

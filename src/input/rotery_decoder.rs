@@ -97,7 +97,7 @@ impl RoteryDecoder {
         let clock = config.clock;
         let direction = config.direction;
         if let Some(switch) = config.switch {
-            spawner.spawn(decoder_switch_loop(
+            let _ = spawner.spawn(decoder_switch_loop(
                 spawner,
                 Arc::downgrade(&options),
                 switch,
@@ -329,7 +329,7 @@ async fn decoder_switch_loop(
             // Fire the switch handler on an edge Low -> High, High -> Low
             options.lock(|options| {
                 let mut handler = options.interface.borrow_mut();
-                handler.pressed(switch_state, spawner)
+                handler.pressed(!switch_state, spawner)
             })
         } else {
             // Our rotery decoder has been dropped

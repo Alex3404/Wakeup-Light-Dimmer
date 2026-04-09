@@ -7,6 +7,10 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
+// Needed for panic handler
+#[allow(unused_imports)]
+use esp_backtrace::*;
+
 use arduino_esp32_dimmer::app;
 use embassy_executor::Spawner;
 use esp_hal::clock::CpuClock;

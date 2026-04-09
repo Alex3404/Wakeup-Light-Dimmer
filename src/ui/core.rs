@@ -1,20 +1,16 @@
-use embassy_sync::{
-    blocking_mutex::{NoopMutex, raw::NoopRawMutex},
-    signal::Signal,
-};
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, rwlock::RwLock, signal::Signal};
 use embedded_graphics::{
     mono_font::{
         MonoTextStyle, MonoTextStyleBuilder,
         ascii::{FONT_6X10, FONT_10X20},
     },
     pixelcolor::BinaryColor,
-    prelude::*,
-    text::{Alignment, Text},
 };
 
+use log::info;
 use ssd1306::{
     I2CDisplayInterface, Ssd1306Async,
-    mode::BufferedGraphicsModeAsync,
+    mode::{BufferedGraphicsModeAsync, DisplayConfigAsync},
     prelude::{DisplayRotation, I2CInterface},
     size::DisplaySize128x64,
 };
@@ -22,8 +18,7 @@ use ssd1306::{
 use esp_hal::{Async, i2c::master::I2c};
 
 extern crate alloc;
-use alloc::rc::Weak;
-use core::cell::RefCell;
+use alloc::rc::{Rc, Weak};
 
 use crate::{
     app::core::AppHandle,
@@ -34,68 +29,9 @@ type Interface = I2CInterface<I2c<'static, Async>>;
 type Size = DisplaySize128x64;
 type Display = Ssd1306Async<Interface, Size, BufferedGraphicsModeAsync<Size>>;
 
-trait MenuItem {
-    async fn update(&mut self, input: InputEvent, controller: &mut MenuController);
-    async fn render(&self, controller: &mut MenuController);
-}
+pub type MenuControllerHandle = Rc<RwLock<NoopRawMutex, MenuController>>;
 
-struct MainMenuItem;
-impl MenuItem for MainMenuItem {
-    async fn update(&mut self, input: InputEvent, controller: &mut MenuController) {
-        match input {
-            InputEvent::ButtonLongPress => {
-                // Switch to menu settings
-                controller.set_current_menu(MenuState::Settings);
-            }
-            InputEvent::ButtonClick => {
-                // Handle button click, maybe reset brightness
-                controller.app.upgrade().expect("App dropped").lock(|app| {
-                    app.toggle_light();
-                });
-            }
-            InputEvent::RotateClockwise => {
-                controller.app.upgrade().expect("App dropped").lock(|app| {
-                    app.update_brightness(|b| b.saturating_add(2));
-                });
-            }
-            InputEvent::RotateCounterClockwise => {
-                controller.app.upgrade().expect("App dropped").lock(|app| {
-                    app.update_brightness(|b| b.saturating_sub(2));
-                });
-            }
-        }
-    }
-
-    async fn render(&self, controller: &mut MenuController) {
-        let large_text = controller.get_large_text_style();
-
-        let brightness = controller.brightness();
-        let display = controller.get_display();
-
-        display.clear_buffer();
-        let text: Result<heapless::String<4>, _> = heapless::format!("{}%", brightness);
-        let Ok(text) = text else {
-            return;
-        };
-
-        Text::with_alignment(
-            text.as_str(),
-            display.bounding_box().center(),
-            large_text,
-            Alignment::Center,
-        )
-        .draw(display)
-        .unwrap();
-
-        display.flush().await.unwrap();
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum MenuState {
-    Main,
-    Settings,
-}
+use crate::ui::menus::*;
 
 pub struct MenuController {
     app: AppHandle,
@@ -109,7 +45,82 @@ pub struct MenuController {
 }
 
 impl MenuController {
-    pub(in crate::ui) async fn handle_input(&mut self, input: InputEvent) {
+    pub async fn finish_initialization(&mut self) {
+        self.display.init().await.unwrap();
+        self.display.flush().await.unwrap();
+
+        // Initial render
+        self.mark_dirty();
+        self.render().await;
+    }
+
+    async fn render(&mut self) {
+        match self.current_menu {
+            MenuState::Main => {
+                let main_menu = MainMenuItem;
+                main_menu.render(self).await;
+            }
+            MenuState::Settings => {
+                // Handle settings menu
+                let settings = SettingsMenuItem;
+                settings.render(self).await;
+            }
+        }
+    }
+}
+
+pub(in crate::ui) mod internal {
+    use crate::{
+        app::core::AppHandle,
+        ui::{core::Display, input::InputEvent, menus::MenuState},
+    };
+    use embedded_graphics::{mono_font::MonoTextStyle, pixelcolor::BinaryColor};
+
+    #[allow(dead_code)]
+    pub trait MenuControllerInternal {
+        fn current_menu(&self) -> MenuState;
+        fn set_current_menu(&mut self, menu: MenuState);
+        fn mark_dirty(&self);
+        fn display(&mut self) -> &mut Display;
+        fn menu_text_style(&self) -> MonoTextStyle<'static, BinaryColor>;
+        fn large_text_style(&self) -> MonoTextStyle<'static, BinaryColor>;
+        fn brightness(&self) -> u8;
+        fn app(&self) -> AppHandle;
+        async fn handle_input(&mut self, input: InputEvent);
+        async fn render(&mut self);
+    }
+}
+
+use internal::MenuControllerInternal;
+
+impl internal::MenuControllerInternal for MenuController {
+    fn current_menu(&self) -> MenuState {
+        self.current_menu
+    }
+
+    fn set_current_menu(&mut self, menu: MenuState) {
+        self.current_menu = menu;
+        self.mark_dirty();
+    }
+
+    fn mark_dirty(&self) {
+        self.render_signal.signal(());
+    }
+
+    fn display(&mut self) -> &mut Display {
+        &mut self.display
+    }
+
+    fn menu_text_style(&self) -> MonoTextStyle<'static, BinaryColor> {
+        self.menu_text_style
+    }
+
+    fn large_text_style(&self) -> MonoTextStyle<'static, BinaryColor> {
+        self.large_text_style
+    }
+
+    async fn handle_input(&mut self, input: InputEvent) {
+        info!("Menu Input!");
         match self.current_menu {
             MenuState::Main => {
                 let mut main_menu = MainMenuItem;
@@ -126,6 +137,13 @@ impl MenuController {
         }
     }
 
+    fn brightness(&self) -> u8 {
+        self.app.upgrade().expect("App dropped").lock(|app| {
+            app.get_user_data()
+                .get(|user_data| user_data.dimmer_state.brightness)
+        })
+    }
+
     async fn render(&mut self) {
         match self.current_menu {
             MenuState::Main => {
@@ -138,48 +156,13 @@ impl MenuController {
         }
     }
 
-    #[allow(dead_code)]
-    pub(self) fn get_current_menu(&self) -> MenuState {
-        self.current_menu
-    }
-
-    pub(self) fn set_current_menu(&mut self, menu: MenuState) {
-        self.current_menu = menu;
-        self.mark_dirty();
-    }
-
-    pub fn mark_dirty(&self) {
-        self.render_signal.signal(());
-    }
-
-    pub fn get_display(&mut self) -> &mut Display {
-        &mut self.display
-    }
-
-    pub fn get_menu_text_style(&self) -> MonoTextStyle<'static, BinaryColor> {
-        self.menu_text_style
-    }
-
-    pub fn get_large_text_style(&self) -> MonoTextStyle<'static, BinaryColor> {
-        self.large_text_style
-    }
-
-    pub async fn finish_initialization(&mut self) {
-        // Initial render
-        self.mark_dirty();
-        self.render().await;
-    }
-
-    fn brightness(&self) -> u8 {
-        self.app.upgrade().expect("App dropped").lock(|app| {
-            app.get_user_data()
-                .get(|user_data| user_data.dimmer_state.brightness)
-        })
+    fn app(&self) -> AppHandle {
+        self.app.clone()
     }
 }
 
 impl MenuController {
-    pub fn new(i2c: I2c<'static, Async>, app: AppHandle) -> Result<Self, ()> {
+    pub fn new(i2c: I2c<'static, Async>, app: AppHandle) -> Result<MenuControllerHandle, ()> {
         let interface = I2CDisplayInterface::new(i2c);
 
         let display = Ssd1306Async::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
@@ -195,20 +178,22 @@ impl MenuController {
             .text_color(BinaryColor::On)
             .build();
 
-        Ok(Self {
+        let controller = Rc::new(RwLock::new(Self {
+            app,
             display,
-            current_menu: MenuState::Main,
             menu_text_style,
             large_text_style,
+            current_menu: MenuState::Main,
             render_signal: Signal::new(),
-            app,
-        })
+        }));
+
+        Ok(controller)
     }
 
     /// Create a RoteryInterface for this menu controller
     /// Takes a reference to allow the Rc to be reused after calling this method
     pub fn create_rotery_interface(
-        this: Weak<NoopMutex<RefCell<Self>>>,
+        this: Weak<RwLock<NoopRawMutex, MenuController>>,
     ) -> Result<MenuControllerInterface, ()> {
         Ok(MenuControllerInterface::new(this))
     }

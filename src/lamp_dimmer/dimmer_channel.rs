@@ -25,7 +25,7 @@ use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
 
 use esp_hal::peripherals::MCPWM0;
 use esp_hal::time::Rate;
-use log::trace;
+use log::info;
 
 extern crate alloc;
 use alloc::sync::{Arc, Weak};
@@ -184,6 +184,10 @@ impl DimmerChannel {
     }
 
     fn update_state(&mut self) {
+        info!(
+            "Updating dimmer state: is_on={}, brightness={}",
+            self.state.is_on, self.state.brightness
+        );
         if !self.builder_active() {
             self.handle
                 .lock(|data| data.borrow_mut().state = self.state);
@@ -300,12 +304,12 @@ impl DimmerChannelDriver<0> {
         // Create mcpwm driver with interrupt handler
         let mut mcpwm = McPwm::new(mcpwm, clock_config.clone());
         mcpwm.set_interrupt_handler(mcpwm_interrupt);
-        trace!("Created mcpwm");
+        info!("Created mcpwm");
 
         // Set sync event on falling edges ( before zero cross event )
         mcpwm.sync0.set_invert(true);
         mcpwm.sync0.set_signal(zero_cross.clone());
-        trace!("Sync configured!");
+        info!("Sync configured!");
 
         // Capture rising edges phase aligned with last zero edge
         let capture_config =
@@ -317,13 +321,13 @@ impl DimmerChannelDriver<0> {
             .configure(capture_config)
             .with_signal_input(zero_cross.clone());
         capture_channel.set_enable(true);
-        trace!("Capture channel configured!");
+        info!("Capture channel configured!");
 
         // Reset capture timer on falling edges
         let cap_timer_config = CaptureTimerConfig::default().with_sync_phase(0);
         mcpwm.capture_timer.set_config(cap_timer_config);
         mcpwm.capture_timer.set_sync_in(&mcpwm.sync0);
-        trace!("Capture timer configured!");
+        info!("Capture timer configured!");
 
         // Start timers with defaults
         let timer_config = clock_config
@@ -333,7 +337,7 @@ impl DimmerChannelDriver<0> {
 
         mcpwm.timer0.set_sync_in(&mcpwm.sync0);
         mcpwm.timer0.set_config(timer_config);
-        trace!("PWM timer configured!");
+        info!("PWM timer configured!");
 
         // Setup operator
         mcpwm.operator0.set_timer(&mcpwm.timer0);
@@ -342,7 +346,7 @@ impl DimmerChannelDriver<0> {
         // Configure pwm pin to be idle
         let pwm_pin_config = PwmPinConfig::new(PwmActions::empty(), PwmUpdateMethod::SYNC_ON_ZERO);
         let pwm_pin = mcpwm.operator0.with_pin_a(gate, pwm_pin_config);
-        trace!("Operator configured!");
+        info!("Operator configured!");
 
         let mut channel = Self {
             avg_time_high: TimeRollingAverage::new(),

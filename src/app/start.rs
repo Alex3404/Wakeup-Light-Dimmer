@@ -2,7 +2,7 @@ use crate::app::core::app_main;
 use crate::app::io;
 
 use esp_hal::peripherals::Peripherals;
-use log::trace;
+use log::info;
 use static_cell::StaticCell;
 
 use embassy_executor::Spawner;
@@ -38,7 +38,7 @@ pub fn run(_main_spawner: Spawner, peripherals: Peripherals) -> ! {
         main_core_peripherals.rtos_timer,
         main_core_peripherals.sw_interrupt_0,
     );
-    trace!("RTOS started!");
+    info!("RTOS started!");
 
     // Create stack for app core
     let app_core_stack = APP_CORE_STACK.init(Stack::new());
@@ -53,7 +53,7 @@ pub fn run(_main_spawner: Spawner, peripherals: Peripherals) -> ! {
             executor.run(app_core);
         },
     );
-    trace!("APP core started!");
+    info!("APP core started!");
 
     // Start up wifi and bluetooth controller
     let (mut _wifi_controller, _interfaces) =
