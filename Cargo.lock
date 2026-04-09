@@ -28,6 +28,7 @@ dependencies = [
  "embedded-hal-bus",
  "embedded-io 0.7.1",
  "embedded-io-async 0.7.0",
+ "embedded-storage-async",
  "enumset",
  "esp-alloc",
  "esp-backtrace",
@@ -36,6 +37,7 @@ dependencies = [
  "esp-println",
  "esp-radio",
  "esp-rtos",
+ "esp-storage",
  "heapless 0.9.2",
  "libm",
  "log",
@@ -1031,6 +1033,19 @@ dependencies = [
  "portable-atomic",
  "riscv",
  "xtensa-lx",
+]
+
+[[package]]
+name = "esp-storage"
+version = "0.8.1"
+dependencies = [
+ "document-features",
+ "embedded-storage",
+ "esp-hal",
+ "esp-hal-procmacros",
+ "esp-metadata-generated",
+ "esp-rom-sys",
+ "esp-sync",
 ]
 
 [[package]]

@@ -1,4 +1,4 @@
-use crate::rolling_average::TimeRollingAverage;
+use crate::lamp_dimmer::rolling_average::TimeRollingAverage;
 use embassy_time::{Duration, Instant, WithTimeout};
 use esp_hal::{gpio::Input, time::Rate};
 

@@ -1,15 +1,19 @@
-use esp_hal::Blocking;
-use esp_hal::gpio::{Input, Output};
-use esp_hal::rmt::{RxChannelCreator, TxChannelCreator};
+use esp_hal::gpio::interconnect::{InputSignal, OutputSignal};
+use esp_hal::peripherals::MCPWM0;
 
-use crate::lamp_dimmer::{FireTimingConfig, MIN_BRIGHTNESS};
+use crate::lamp_dimmer::{DimmerChannelState, DimmerSettings, MAX_BRIGHTNESS, TimingConfig};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GammaCorrection {
+    Exponetinal,
+    Linear,
+}
 
 /// The lamp dimmer channel config specifies the configuration
 /// of an lamp dimmer channel.
 ///
 /// Required properties of a lamp dimmer are:
 /// A zero cross input and triac gate output pin.
-/// A RMT channel uses for cpu independant firing of the triac gate pin.
 ///
 /// Optional:
 /// A frequency of the AC wave, defaults to Determine AC Frequency.
@@ -17,52 +21,54 @@ use crate::lamp_dimmer::{FireTimingConfig, MIN_BRIGHTNESS};
 /// A mininum triac gate pulse, defaults to 150us
 /// A gamma correction defaults to linear
 /// - Use Exponental for LED bulbs it offers a more realistic dimming
-///
-pub struct LampDimmerChannelConfig<TxChannel, RxChannel>
-where
-    TxChannel: TxChannelCreator<'static, Blocking> + Sized,
-    RxChannel: RxChannelCreator<'static, Blocking> + Sized,
-{
-    // Required fields
+pub struct DimmerChannelConfig {
+    // Required properties
     pub(in crate::lamp_dimmer) frequency: u8,
-    pub(in crate::lamp_dimmer) gate_output_pin: Output<'static>,
-    pub(in crate::lamp_dimmer) zero_cross_pin: Input<'static>,
-    pub(in crate::lamp_dimmer) tx_channel: TxChannel,
-    pub(in crate::lamp_dimmer) _rx_channel: RxChannel,
+    pub(in crate::lamp_dimmer) gate: OutputSignal<'static>,
+    pub(in crate::lamp_dimmer) zero_cross: InputSignal<'static>,
+    pub(in crate::lamp_dimmer) mcpwm: MCPWM0<'static>,
 
-    /// Defaults to 0
-    pub(in crate::lamp_dimmer) starting_brightness: u8,
-    /// Defaults to FireTimingConfig::Default()
-    pub(in crate::lamp_dimmer) fire_timing_config: FireTimingConfig,
+    /// Defaults to off
+    pub(in crate::lamp_dimmer) starting_state: DimmerChannelState,
+
+    /// Defaults to TimingConfig::Default()
+    pub(in crate::lamp_dimmer) timing_config: TimingConfig,
+    pub(in crate::lamp_dimmer) dimmer_settings: DimmerSettings,
 }
 
-impl<TxChannel, RxChannel> LampDimmerChannelConfig<TxChannel, RxChannel>
-where
-    TxChannel: TxChannelCreator<'static, Blocking> + Sized,
-    RxChannel: RxChannelCreator<'static, Blocking> + Sized,
-{
+impl DimmerChannelConfig {
     pub fn new(
         frequency: u8,
-        zero_cross_pin: Input<'static>,
-        gate_output_pin: Output<'static>,
-        tx_channel: TxChannel,
-        rx_channel: RxChannel,
+        zero_cross_pin: InputSignal<'static>,
+        gate_output_pin: OutputSignal<'static>,
+        mcpwm: MCPWM0<'static>,
     ) -> Self {
         Self {
             frequency,
-            zero_cross_pin,
-            gate_output_pin,
-            tx_channel,
-            _rx_channel: rx_channel,
-            starting_brightness: MIN_BRIGHTNESS,
-            // Choose some pretty basic starting
-            // values that should work well in most cases
-            fire_timing_config: FireTimingConfig::default(),
+            zero_cross: zero_cross_pin,
+            gate: gate_output_pin,
+            mcpwm,
+            starting_state: DimmerChannelState {
+                brightness: MAX_BRIGHTNESS,
+                is_on: false,
+            },
+            timing_config: TimingConfig::default(),
+            dimmer_settings: DimmerSettings::default(),
         }
     }
 
-    pub fn with_firing_timing(mut self, fire_timing_config: FireTimingConfig) -> Self {
-        self.fire_timing_config = fire_timing_config;
+    pub fn with_starting_state(mut self, starting_state: DimmerChannelState) -> Self {
+        self.starting_state = starting_state;
+        self
+    }
+
+    pub fn with_dimmer_settings(mut self, dimmer_settings: DimmerSettings) -> Self {
+        self.dimmer_settings = dimmer_settings;
+        self
+    }
+
+    pub fn with_firing_timing(mut self, fire_timing_config: TimingConfig) -> Self {
+        self.timing_config = fire_timing_config;
         self
     }
 }

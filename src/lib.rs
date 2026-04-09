@@ -1,7 +1,7 @@
 #![no_std]
+#![feature(unique_rc_arc)]
 
+pub mod app;
+pub mod input;
 pub mod lamp_dimmer;
-pub mod rolling_average;
-pub mod rotery_decoder;
 pub mod ui;
-// pub mod sh1106;

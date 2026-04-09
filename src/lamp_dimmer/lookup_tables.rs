@@ -2,7 +2,7 @@ use core::u16;
 use esp_hal::rmt::PulseCode;
 
 use crate::lamp_dimmer::MAX_BRIGHTNESS;
-use crate::lamp_dimmer::{FireTimingConfig, GammaCorrection};
+use crate::lamp_dimmer::{DimmerSettings, GammaCorrection, TimingConfig};
 
 // Lookup table size for fire angle and fire pulse width
 const LOOKUP_TABLE_SIZE: usize = MAX_BRIGHTNESS as usize + 1;
@@ -30,7 +30,7 @@ macro_rules! fixed_point_mul {
 /// 16 most siginifcant bits repersent the integer
 /// Produces a micro second firing angle and micro second pulse width
 /// Based on the provided firing config
-impl FireTimingConfig {
+impl TimingConfig {
     // Gamma corrects a fractional brightness value
     fn gamma_correct(brightness_fraction: u32, correction: GammaCorrection) -> u32 {
         match correction {
@@ -40,7 +40,11 @@ impl FireTimingConfig {
         }
     }
 
-    pub fn create_lookup_tables(&self, frequency: u8) -> LookupTables {
+    pub fn create_lookup_tables(
+        &self,
+        frequency: u8,
+        dimmer_settings: &DimmerSettings,
+    ) -> LookupTables {
         let mut fire_angle_table: [u16; LOOKUP_TABLE_SIZE] = [0; LOOKUP_TABLE_SIZE];
         let mut pulse_width_table: [u16; LOOKUP_TABLE_SIZE] = [0; LOOKUP_TABLE_SIZE];
 
@@ -61,14 +65,16 @@ impl FireTimingConfig {
 
             // Turn brightness values from 0 to MAX_BRIGHTNESS divided by MAX_BRIGHTNESS
             // To yield a fraction as a fixed point number as described above
-            let reserved_start_fraction = (MAX_BRIGHTNESS - self.perceved_full_brightness) as u32
-                * u16::MAX as u32
-                / MAX_BRIGHTNESS as u32;
+            let reserved_start_fraction =
+                (MAX_BRIGHTNESS - dimmer_settings.perceived_full_brightness) as u32
+                    * u16::MAX as u32
+                    / MAX_BRIGHTNESS as u32;
 
             // Turn brightness values from 0 to MAX_BRIGHTNESS divided by MAX_BRIGHTNESS
             // To yield a fraction as a fixed point number as described above
-            let reserved_end_fraction =
-                (self.perceved_zero_brightness) as u32 * u16::MAX as u32 / MAX_BRIGHTNESS as u32;
+            let reserved_end_fraction = (dimmer_settings.perceived_zero_brightness) as u32
+                * u16::MAX as u32
+                / MAX_BRIGHTNESS as u32;
 
             // Multiply the wave time by the both of the margin fractions to find
             // Phase angle
@@ -84,7 +90,7 @@ impl FireTimingConfig {
 
             // Gamma correct the fraction
             let brightness_fraction =
-                FireTimingConfig::gamma_correct(brightness_fraction, self.gamma_correction);
+                TimingConfig::gamma_correct(brightness_fraction, dimmer_settings.gamma_correction);
 
             // Get the non reserved part of the wave
             let total_allowed_trigger_micros = total_angle_time_micros

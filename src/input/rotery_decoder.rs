@@ -8,9 +8,11 @@ use embassy_sync::blocking_mutex::NoopMutex;
 use embassy_time::{Duration, WithTimeout};
 use esp_hal::gpio::Input;
 
+use super::RoteryInterface;
+
 extern crate alloc;
 use alloc::boxed::Box;
-use alloc::rc::{Rc, Weak};
+use alloc::sync::{Arc, Weak};
 use log::info;
 
 /// Rotery decoder config
@@ -24,20 +26,22 @@ pub struct RoteryDecoderConfig<'d> {
     switch: Option<Input<'d>>,
 
     debounce: Option<Duration>,
-    rotation_handler: Option<RotationHandler>,
-    switch_handler: Option<SwitchHandler>,
+    interface: Box<dyn RoteryInterface>,
 }
 
 impl<'d> RoteryDecoderConfig<'d> {
     /// Create a new rotation decoder config
-    pub fn new(clock: Input<'d>, direction: Input<'d>) -> Self {
+    pub fn new(
+        clock: Input<'d>,
+        direction: Input<'d>,
+        interface: impl RoteryInterface + 'static,
+    ) -> Self {
         Self {
             clock,
             direction,
             switch: None,
             debounce: None,
-            rotation_handler: None,
-            switch_handler: None,
+            interface: Box::new(interface),
         }
     }
 
@@ -55,22 +59,6 @@ impl<'d> RoteryDecoderConfig<'d> {
             ..self
         }
     }
-
-    /// Assign a rotation handler
-    pub fn with_rotate_handler(self, rotate_handler: RotationHandler) -> Self {
-        Self {
-            rotation_handler: Some(rotate_handler),
-            ..self
-        }
-    }
-
-    /// Assign a switch handler
-    pub fn with_switch_handler(self, switch_handler: SwitchHandler) -> Self {
-        Self {
-            switch_handler: Some(switch_handler),
-            ..self
-        }
-    }
 }
 
 /// Rotery decoder
@@ -80,12 +68,12 @@ impl<'d> RoteryDecoderConfig<'d> {
 /// This decodes clock wise and counter clockwise events from a rotery decoder.
 /// If there is a switch given via the config you can assign a switch handler
 pub struct RoteryDecoder {
-    _state: Rc<RoteryStateRef>,
-    _options: Rc<RoteryOptionsRef>,
+    _state: Arc<RoteryStateRef>,
+    _options: Arc<RoteryOptionsRef>,
 }
 
 impl RoteryDecoder {
-    pub fn create(
+    pub fn new(
         spawner: Spawner,
         config: RoteryDecoderConfig<'static>,
     ) -> Result<Self, RoteryDecoderNewError> {
@@ -93,33 +81,33 @@ impl RoteryDecoder {
             return Err(RoteryDecoderNewError::MaxNumberOfInstances);
         }
 
-        let state = Rc::new(NoopMutex::new(RefCell::new(RoteryState {
+        let state = Arc::new(NoopMutex::new(RefCell::new(RoteryState {
             clock_state: false,
             rotate_state: false,
             fired: false,
         })));
 
-        let options = Rc::new(NoopMutex::new(RefCell::new(RoteryOptions {
+        let options = Arc::new(NoopMutex::new(RoteryOptions {
             debounce: config.debounce,
-            rotation_handler: config.rotation_handler,
-            switch_handler: config.switch_handler,
-        })));
+            interface: RefCell::new(config.interface),
+        }));
 
         info!("Spawn tasks!");
+
         let clock = config.clock;
         let direction = config.direction;
         if let Some(switch) = config.switch {
-            spawner.must_spawn(decoder_switch_loop(
+            spawner.spawn(decoder_switch_loop(
                 spawner,
-                Rc::downgrade(&options),
+                Arc::downgrade(&options),
                 switch,
             ));
         };
 
         spawner.must_spawn(decoder_loop(
             spawner,
-            Rc::downgrade(&state),
-            Rc::downgrade(&options),
+            Arc::downgrade(&state),
+            Arc::downgrade(&options),
             clock,
             direction,
         ));
@@ -131,13 +119,24 @@ impl RoteryDecoder {
     }
 }
 
+impl Drop for RoteryDecoder {
+    fn drop(&mut self) {}
+}
+
 type RoteryStateRef = NoopMutex<RefCell<RoteryState>>;
 
 /// State machine for rotery decoder
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 struct RoteryState {
     clock_state: bool,
     rotate_state: bool,
     fired: bool,
+}
+
+type RoteryOptionsRef = NoopMutex<RoteryOptions>;
+struct RoteryOptions {
+    debounce: Option<Duration>,
+    interface: RefCell<Box<dyn RoteryInterface>>,
 }
 
 impl RoteryState {
@@ -191,13 +190,6 @@ impl RoteryState {
     }
 }
 
-type RoteryOptionsRef = NoopMutex<RefCell<RoteryOptions>>;
-struct RoteryOptions {
-    debounce: Option<Duration>,
-    rotation_handler: Option<RotationHandler>,
-    switch_handler: Option<SwitchHandler>,
-}
-
 /// The maximum number of decoders allowed to be created at at time
 /// This limit is mostly because we need to limit the number
 /// of concurrent embassy tasks for gpio input
@@ -206,7 +198,8 @@ struct RoteryOptions {
 pub const MAX_DECODERS: usize = 3;
 static DECODER_COUNT: AtomicUsize = AtomicUsize::new(0);
 
-/// Error for
+/// Error for creating a new rotery decoder
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RoteryDecoderNewError {
     MaxNumberOfInstances,
 }
@@ -272,7 +265,7 @@ async fn decoder_loop(
     loop {
         // Get the debounce time
         let debounce = if let Some(options) = options.upgrade() {
-            options.lock(|options| options.borrow().debounce)
+            options.lock(|options| options.debounce)
         } else {
             // Our rotery decoder has been dropped
             break;
@@ -306,11 +299,11 @@ async fn decoder_loop(
 
         // Fire rotation handler with rotation
         options.lock(|options| {
-            let Some(ref handler) = options.borrow().rotation_handler else {
-                return;
-            };
-
-            handler(spawner, rotation);
+            let mut handler = options.interface.borrow_mut();
+            match rotation {
+                Rotation::Clockwise => handler.rotate_cw(spawner),
+                Rotation::Counterclockwise => handler.rotate_ccw(spawner),
+            }
         })
     }
 }
@@ -324,21 +317,19 @@ async fn decoder_switch_loop(
     loop {
         // Get the debounce time
         let debounce = if let Some(options) = options.upgrade() {
-            options.lock(|options| options.borrow().debounce)
+            options.lock(|options| options.debounce)
         } else {
             // Our rotery decoder has been dropped
             break;
         };
 
         let switch_state = wait_for_edge(&mut switch_pin, debounce).await;
+
         if let Some(options) = options.upgrade() {
             // Fire the switch handler on an edge Low -> High, High -> Low
             options.lock(|options| {
-                let Some(ref handler) = options.borrow().switch_handler else {
-                    return;
-                };
-
-                handler(spawner, switch_state);
+                let mut handler = options.interface.borrow_mut();
+                handler.pressed(switch_state, spawner)
             })
         } else {
             // Our rotery decoder has been dropped
