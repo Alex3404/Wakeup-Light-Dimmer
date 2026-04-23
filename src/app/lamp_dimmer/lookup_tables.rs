@@ -1,11 +1,12 @@
 use core::u16;
 use esp_hal::rmt::PulseCode;
 
-use crate::lamp_dimmer::MAX_BRIGHTNESS;
-use crate::lamp_dimmer::{DimmerSettings, GammaCorrection, TimingConfig};
+use crate::app::lamp_dimmer::MAX_BRIGHTNESS;
+use crate::app::lamp_dimmer::{DimmerSettings, GammaCorrection, TimingConfig};
 
 // Lookup table size for fire angle and fire pulse width
 const LOOKUP_TABLE_SIZE: usize = MAX_BRIGHTNESS as usize + 1;
+
 // Can't allow more mircoseconds then the pulse width allows
 const MINIMUM_FREQUENCY: u8 = (1_000_000 / (PulseCode::MAX_LEN as u32 * 2) + 1) as u8;
 

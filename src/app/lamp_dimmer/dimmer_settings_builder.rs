@@ -1,6 +1,6 @@
-use crate::lamp_dimmer::{
-    DimmerChannelState, DimmerSettings, MAX_BRIGHTNESS, MIN_BRIGHTNESS,
-    dimmer_channel::DriverHandle, timing_config::GammaCorrection,
+use crate::app::lamp_dimmer::{
+    DimmerState, DimmerSettings, GammaCorrection, MAX_BRIGHTNESS, MIN_BRIGHTNESS,
+    dimmer_channel::DriverHandle,
 };
 
 use embassy_executor::SendSpawner;
@@ -10,7 +10,6 @@ use embassy_sync::signal::Signal;
 use embassy_time::{Duration, Instant, Timer};
 
 extern crate alloc;
-use alloc::boxed::Box;
 use alloc::sync::Arc;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -20,13 +19,10 @@ pub enum PreviewMode {
     GammaCorrection,
 }
 
-/// Callback type for publishing dimmer settings changes
-pub type PublishCallback = Box<dyn FnMut(DimmerSettings)>;
-
 /// Builder for configuring dimmer settings with real-time preview
 pub struct DimmerSettingsBuilder {
     pending_settings: DimmerSettings,
-    publish_callback: PublishCallback,
+    publish_signal: Arc<Signal<CriticalSectionRawMutex, DimmerSettings>>,
 
     preview_mode: Option<PreviewMode>,
     gamma_preview_task: Option<Arc<GammaPreviewTask>>,
@@ -75,7 +71,7 @@ async fn animate_gamma_preview(preview_task: Arc<GammaPreviewTask>) {
 
         // Update dimmer
         preview_task.handle.lock(|d| {
-            d.borrow_mut().update_state(DimmerChannelState {
+            d.borrow_mut().update_state(DimmerState {
                 brightness,
                 is_on: true,
             });
@@ -88,14 +84,14 @@ async fn animate_gamma_preview(preview_task: Arc<GammaPreviewTask>) {
 impl DimmerSettingsBuilder {
     /// Create a new builder from current settings
     pub(super) fn new(
-        publish_callback: PublishCallback,
+        publish_signal: Arc<Signal<CriticalSectionRawMutex, DimmerSettings>>,
         handle: DriverHandle,
         settings: DimmerSettings,
         dropped: Arc<Signal<CriticalSectionRawMutex, ()>>,
     ) -> Self {
         Self {
             pending_settings: settings.clone(),
-            publish_callback,
+            publish_signal,
             preview_mode: None,
             gamma_preview_task: None,
             handle,
@@ -176,8 +172,7 @@ impl DimmerSettingsBuilder {
     /// Call callback with pending settings and exit builder
     pub fn publish(mut self) {
         self.stop_gamma_preview();
-        let callback = self.publish_callback.as_mut();
-        callback(self.pending_settings);
+        self.publish_signal.signal(self.pending_settings);
     }
 
     /// Get the pending settings (for display/validation)
@@ -211,7 +206,7 @@ impl DimmerSettingsBuilder {
     fn update_brightness(&mut self, brightness: u8) {
         critical_section::with(|cs| {
             let mut handle = self.handle.borrow(cs).borrow_mut();
-            handle.update_state(DimmerChannelState {
+            handle.update_state(DimmerState {
                 brightness,
                 is_on: true,
             });
@@ -254,7 +249,8 @@ impl DimmerSettingsBuilder {
 
         let spawner = SendSpawner::for_current_executor().await;
 
-        let _ = spawner.spawn(animate_gamma_preview(preview_task.clone()));
+        let token = animate_gamma_preview(preview_task.clone());
+        let _ = spawner.spawn(token.unwrap());
         self.gamma_preview_task = Some(preview_task);
     }
 

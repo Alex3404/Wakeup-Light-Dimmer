@@ -1,10 +1,7 @@
-use core::{
-    cell::RefCell,
-    sync::atomic::{AtomicUsize, Ordering},
-};
+use core::sync::atomic::{AtomicUsize, Ordering};
 use embassy_executor::Spawner;
 use embassy_futures::select::Either;
-use embassy_sync::blocking_mutex::NoopMutex;
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, rwlock::RwLock};
 use embassy_time::{Duration, WithTimeout};
 use esp_hal::gpio::Input;
 
@@ -13,7 +10,6 @@ use super::RoteryInterface;
 extern crate alloc;
 use alloc::boxed::Box;
 use alloc::sync::{Arc, Weak};
-use log::info;
 
 /// Rotery decoder config
 /// ## Overview
@@ -68,8 +64,8 @@ impl<'d> RoteryDecoderConfig<'d> {
 /// This decodes clock wise and counter clockwise events from a rotery decoder.
 /// If there is a switch given via the config you can assign a switch handler
 pub struct RoteryDecoder {
-    _state: Arc<RoteryStateRef>,
-    _options: Arc<RoteryOptionsRef>,
+    _state: Arc<RwLock<NoopRawMutex, RoteryState>>,
+    _options: Arc<RwLock<NoopRawMutex, RoteryOptions>>,
 }
 
 impl RoteryDecoder {
@@ -81,36 +77,34 @@ impl RoteryDecoder {
             return Err(RoteryDecoderNewError::MaxNumberOfInstances);
         }
 
-        let state = Arc::new(NoopMutex::new(RefCell::new(RoteryState {
+        let state = Arc::new(RwLock::new(RoteryState {
             clock_state: false,
             rotate_state: false,
             fired: false,
-        })));
-
-        let options = Arc::new(NoopMutex::new(RoteryOptions {
-            debounce: config.debounce,
-            interface: RefCell::new(config.interface),
         }));
 
-        info!("Spawn tasks!");
+        let options = Arc::new(RwLock::new(RoteryOptions {
+            debounce: config.debounce,
+            interface: config.interface,
+        }));
 
         let clock = config.clock;
         let direction = config.direction;
+
+        // Spawn a task for the switch pin exists
         if let Some(switch) = config.switch {
-            let _ = spawner.spawn(decoder_switch_loop(
-                spawner,
-                Arc::downgrade(&options),
-                switch,
-            ));
+            let token = decoder_switch_loop(Arc::downgrade(&options), switch);
+            spawner.spawn(token.unwrap());
         };
 
-        spawner.must_spawn(decoder_loop(
-            spawner,
+        let token = decoder_loop(
             Arc::downgrade(&state),
             Arc::downgrade(&options),
             clock,
             direction,
-        ));
+        );
+
+        spawner.spawn(token.unwrap());
 
         Ok(Self {
             _options: options,
@@ -123,8 +117,6 @@ impl Drop for RoteryDecoder {
     fn drop(&mut self) {}
 }
 
-type RoteryStateRef = NoopMutex<RefCell<RoteryState>>;
-
 /// State machine for rotery decoder
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 struct RoteryState {
@@ -133,10 +125,9 @@ struct RoteryState {
     fired: bool,
 }
 
-type RoteryOptionsRef = NoopMutex<RoteryOptions>;
 struct RoteryOptions {
     debounce: Option<Duration>,
-    interface: RefCell<Box<dyn RoteryInterface>>,
+    interface: Box<dyn RoteryInterface>,
 }
 
 impl RoteryState {
@@ -256,16 +247,15 @@ async fn wait_for_edge(input: &mut Input<'_>, debounce: Option<Duration>) -> boo
 ///////////////////////////////////////////
 #[embassy_executor::task(pool_size = MAX_DECODERS)]
 async fn decoder_loop(
-    spawner: Spawner,
-    state: Weak<RoteryStateRef>,
-    options: Weak<RoteryOptionsRef>,
+    state: Weak<RwLock<NoopRawMutex, RoteryState>>,
+    options: Weak<RwLock<NoopRawMutex, RoteryOptions>>,
     mut clock: Input<'static>,
     mut rotate: Input<'static>,
 ) {
     loop {
         // Get the debounce time
         let debounce = if let Some(options) = options.upgrade() {
-            options.lock(|options| options.debounce)
+            options.read().await.debounce
         } else {
             // Our rotery decoder has been dropped
             break;
@@ -286,38 +276,35 @@ async fn decoder_loop(
 
         // Update decoder state with new input
         let result = match select {
-            Either::First(clock_state) => {
-                state.lock(|state| state.borrow_mut().clock_changed(clock_state))
-            }
-            Either::Second(rotate_state) => {
-                state.lock(|state| state.borrow_mut().rotate_changed(rotate_state))
-            }
+            Either::First(clock_state) => state.write().await.clock_changed(clock_state),
+            Either::Second(rotate_state) => state.write().await.rotate_changed(rotate_state),
         };
+        drop(state); // Release lock before awaiting
+
         let Some(rotation) = result else {
             continue;
         };
 
         // Fire rotation handler with rotation
-        options.lock(|options| {
-            let mut handler = options.interface.borrow_mut();
-            match rotation {
-                Rotation::Clockwise => handler.rotate_cw(spawner),
-                Rotation::Counterclockwise => handler.rotate_ccw(spawner),
-            }
-        })
+        let mut options_w = options.write().await;
+
+        let handler = &mut options_w.interface;
+        match rotation {
+            Rotation::Clockwise => handler.rotate_cw(),
+            Rotation::Counterclockwise => handler.rotate_ccw(),
+        }
     }
 }
 
 #[embassy_executor::task(pool_size = MAX_DECODERS)]
 async fn decoder_switch_loop(
-    spawner: Spawner,
-    options: Weak<RoteryOptionsRef>,
+    options: Weak<RwLock<NoopRawMutex, RoteryOptions>>,
     mut switch_pin: Input<'static>,
 ) {
     loop {
         // Get the debounce time
         let debounce = if let Some(options) = options.upgrade() {
-            options.lock(|options| options.debounce)
+            options.read().await.debounce
         } else {
             // Our rotery decoder has been dropped
             break;
@@ -327,10 +314,9 @@ async fn decoder_switch_loop(
 
         if let Some(options) = options.upgrade() {
             // Fire the switch handler on an edge Low -> High, High -> Low
-            options.lock(|options| {
-                let mut handler = options.interface.borrow_mut();
-                handler.pressed(!switch_state, spawner)
-            })
+            let mut options_w = options.write().await;
+            let handler = &mut options_w.interface;
+            handler.pressed(!switch_state);
         } else {
             // Our rotery decoder has been dropped
             break;

@@ -25,7 +25,8 @@ async fn app_runner(spawner: Spawner) {
 
 fn app_core(spawner: Spawner) -> () {
     // Run app main
-    spawner.must_spawn(app_runner(spawner));
+    let token = app_runner(spawner);
+    spawner.spawn(token.expect("App runner failed to spawn!"));
 }
 
 // Creates a new instance of the app.

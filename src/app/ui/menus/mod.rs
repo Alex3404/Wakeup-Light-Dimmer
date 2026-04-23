@@ -1,0 +1,44 @@
+pub mod main_menu;
+pub mod settings;
+
+use super::{MenuController, input::InputEvent};
+pub use main_menu::MainMenuItem;
+pub use settings::SettingsMenuItem;
+
+pub(super) trait MenuItem: Default {
+    #[allow(unused)]
+    async fn show(&mut self, controller: &mut MenuController) {}
+    async fn handle_input(&mut self, input: InputEvent, controller: &mut MenuController);
+    async fn render(&self, controller: &mut MenuController);
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
+pub(super) enum MenuSelect {
+    #[default]
+    Main,
+    Settings,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum MenuState {
+    Main(MainMenuItem),
+    Settings(SettingsMenuItem),
+}
+
+impl MenuState {
+    pub(super) fn get_menu_select(&self) -> MenuSelect {
+        match self {
+            MenuState::Main(_) => MenuSelect::Main,
+            MenuState::Settings(_) => MenuSelect::Settings,
+        }
+    }
+}
+
+impl MenuSelect {
+    pub(super) fn create_menu_item(&self) -> MenuState {
+        match self {
+            MenuSelect::Main => MenuState::Main(MainMenuItem::default()),
+            MenuSelect::Settings => MenuState::Settings(SettingsMenuItem::default()),
+        }
+    }
+}

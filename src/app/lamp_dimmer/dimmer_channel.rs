@@ -1,7 +1,6 @@
-use crate::lamp_dimmer::{
-    DimmerChannelConfig, DimmerChannelState, DimmerSettings, MAX_BRIGHTNESS, TimingConfig,
-    dimmer_settings_builder::{DimmerSettingsBuilder, PublishCallback},
-    lookup_tables::LookupTables,
+use crate::app::lamp_dimmer::{
+    DimmerChannelConfig, DimmerSettings, DimmerState, MAX_BRIGHTNESS, TimingConfig,
+    dimmer_settings_builder::DimmerSettingsBuilder, lookup_tables::LookupTables,
     rolling_average::TimeRollingAverage,
 };
 
@@ -32,7 +31,7 @@ use alloc::sync::{Arc, Weak};
 
 pub struct DimmerChannel {
     settings: DimmerSettings,
-    state: DimmerChannelState,
+    state: DimmerState,
     handle: DriverHandle,
     builder_dropped: Arc<Signal<CriticalSectionRawMutex, ()>>,
     builder_active: bool,
@@ -91,7 +90,7 @@ impl DimmerChannel {
 
     pub fn new_settings_builder(
         &mut self,
-        publish_callback: PublishCallback,
+        publish_signal: Arc<Signal<CriticalSectionRawMutex, DimmerSettings>>,
     ) -> Result<DimmerSettingsBuilder, ()> {
         if self.builder_active {
             // Only one builder can be active at a time to prevent conflicts
@@ -101,7 +100,7 @@ impl DimmerChannel {
         self.builder_dropped.reset();
 
         let builder = DimmerSettingsBuilder::new(
-            publish_callback,
+            publish_signal,
             self.handle.clone(),
             self.settings.clone(),
             self.builder_dropped.clone(),
@@ -110,11 +109,11 @@ impl DimmerChannel {
         Ok(builder)
     }
 
-    pub fn get_state(&self) -> DimmerChannelState {
+    pub fn get_state(&self) -> DimmerState {
         self.state
     }
 
-    pub fn set_state(&mut self, state: DimmerChannelState) {
+    pub fn set_state(&mut self, state: DimmerState) {
         self.state = state;
         self.update_state();
     }
@@ -145,27 +144,6 @@ impl DimmerChannel {
     pub fn set_settings(&mut self, settings: DimmerSettings) {
         self.settings = settings;
         self.update_settings();
-    }
-
-    pub async fn animate_brightness(&mut self, target_brightness: u8, duration: Duration) {
-        let current_brightness = self.get_state().brightness;
-        let steps = current_brightness.abs_diff(target_brightness) as i16;
-        let step_duration = duration / steps as u32;
-        let brightness_step: i16 = if target_brightness > current_brightness {
-            1
-        } else if target_brightness < current_brightness {
-            -1
-        } else {
-            return;
-        };
-
-        for _ in 1..=steps {
-            let new_brightness =
-                (current_brightness as i16 + brightness_step).clamp(0, MAX_BRIGHTNESS as i16) as u8;
-            self.set_brightness(new_brightness);
-
-            embassy_time::Timer::after(step_duration).await;
-        }
     }
 
     fn builder_active(&mut self) -> bool {
@@ -219,7 +197,7 @@ pub(super) type DriverHandle = Arc<CriticalSectionMutex<RefCell<DimmerDriverData
 /// dimmer state and lookup.
 pub(super) struct DimmerDriverData {
     frequency: u8,
-    state: DimmerChannelState,
+    state: DimmerState,
     settings: DimmerSettings,
 
     timing_confg: TimingConfig,
@@ -229,7 +207,7 @@ pub(super) struct DimmerDriverData {
 #[allow(dead_code)]
 impl DimmerDriverData {
     pub fn new(
-        state: DimmerChannelState,
+        state: DimmerState,
         settings: DimmerSettings,
         timing_confg: TimingConfig,
         frequency: u8,
@@ -244,7 +222,7 @@ impl DimmerDriverData {
         }
     }
 
-    pub fn get_state(&self) -> DimmerChannelState {
+    pub fn get_state(&self) -> DimmerState {
         self.state
     }
 
@@ -256,7 +234,7 @@ impl DimmerDriverData {
         self.timing_confg
     }
 
-    pub fn update_state(&mut self, state: DimmerChannelState) {
+    pub fn update_state(&mut self, state: DimmerState) {
         self.state = state;
     }
 
@@ -325,18 +303,21 @@ impl DimmerChannelDriver<0> {
 
         // Reset capture timer on falling edges
         let cap_timer_config = CaptureTimerConfig::default().with_sync_phase(0);
-        mcpwm.capture_timer.set_config(cap_timer_config);
+        mcpwm.capture_timer.apply_config(cap_timer_config);
         mcpwm.capture_timer.set_sync_in(&mcpwm.sync0);
         info!("Capture timer configured!");
 
         // Start timers with defaults
         let timer_config = clock_config
             .timer_clock_with_prescaler(u16::MAX, PwmWorkingMode::Increase, 0)
-            .with_sync_phase(0)
-            .with_period_updating_method(PeriodUpdatingMethod::Sync);
+            .with_period_updating_method(PeriodUpdatingMethod::Sync)
+            .with_phase(0);
 
         mcpwm.timer0.set_sync_in(&mcpwm.sync0);
-        mcpwm.timer0.set_config(timer_config);
+        mcpwm
+            .timer0
+            .apply_config(timer_config)
+            .expect("Timer 0 failed to apply config");
         info!("PWM timer configured!");
 
         // Setup operator
@@ -376,14 +357,15 @@ impl DimmerChannelDriver<0> {
         if self.capture_channel.is_interrupt_set() {
             self.capture_channel.clear_interrupt();
 
-            let event = self.capture_channel.get_event();
+            let event = self.capture_channel.events();
             let pulse_width = event.time() / 80;
             self.falling_edge(pulse_width);
         }
     }
 
     fn falling_edge(&mut self, pulse_width: u32) {
-        // Estimated next zero cross on rising edge
+        // Estimated next zero cross with the average high time of the zero cross pulse,
+        // since the pulse is centered around the zero cross
         let average_high = self
             .avg_time_high
             .new_sample(Duration::from_micros(pulse_width as u64));

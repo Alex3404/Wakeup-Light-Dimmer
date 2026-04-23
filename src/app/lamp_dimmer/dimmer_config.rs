@@ -1,7 +1,7 @@
 use esp_hal::gpio::interconnect::{InputSignal, OutputSignal};
 use esp_hal::peripherals::MCPWM0;
 
-use crate::lamp_dimmer::{DimmerChannelState, DimmerSettings, MAX_BRIGHTNESS, TimingConfig};
+use crate::app::lamp_dimmer::{DimmerState, DimmerSettings, TimingConfig};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GammaCorrection {
@@ -23,22 +23,23 @@ pub enum GammaCorrection {
 /// - Use Exponental for LED bulbs it offers a more realistic dimming
 pub struct DimmerChannelConfig {
     // Required properties
-    pub(in crate::lamp_dimmer) frequency: u8,
-    pub(in crate::lamp_dimmer) gate: OutputSignal<'static>,
-    pub(in crate::lamp_dimmer) zero_cross: InputSignal<'static>,
-    pub(in crate::lamp_dimmer) mcpwm: MCPWM0<'static>,
+    pub(super) frequency: u8,
+    pub(super) gate: OutputSignal<'static>,
+    pub(super) zero_cross: InputSignal<'static>,
+    pub(super) mcpwm: MCPWM0<'static>,
 
     /// Defaults to off
-    pub(in crate::lamp_dimmer) starting_state: DimmerChannelState,
+    pub(super) starting_state: DimmerState,
 
     /// Defaults to TimingConfig::Default()
-    pub(in crate::lamp_dimmer) timing_config: TimingConfig,
-    pub(in crate::lamp_dimmer) dimmer_settings: DimmerSettings,
+    pub(super) timing_config: TimingConfig,
+    pub(super) dimmer_settings: DimmerSettings,
 }
 
 impl DimmerChannelConfig {
     pub fn new(
         frequency: u8,
+        timing_config: TimingConfig,
         zero_cross_pin: InputSignal<'static>,
         gate_output_pin: OutputSignal<'static>,
         mcpwm: MCPWM0<'static>,
@@ -48,16 +49,13 @@ impl DimmerChannelConfig {
             zero_cross: zero_cross_pin,
             gate: gate_output_pin,
             mcpwm,
-            starting_state: DimmerChannelState {
-                brightness: MAX_BRIGHTNESS,
-                is_on: false,
-            },
-            timing_config: TimingConfig::default(),
+            timing_config,
+            starting_state: DimmerState::default(),
             dimmer_settings: DimmerSettings::default(),
         }
     }
 
-    pub fn with_starting_state(mut self, starting_state: DimmerChannelState) -> Self {
+    pub fn with_starting_state(mut self, starting_state: DimmerState) -> Self {
         self.starting_state = starting_state;
         self
     }
