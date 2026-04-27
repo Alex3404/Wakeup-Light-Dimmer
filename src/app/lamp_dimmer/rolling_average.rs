@@ -45,4 +45,8 @@ impl<const N: usize> TimeRollingAverage<N> {
         let avg_micros = self.sum.as_micros() / self.count as u64;
         Duration::from_micros(avg_micros)
     }
+
+    pub fn is_full(&self) -> bool {
+        self.count == N
+    }
 }

@@ -1,16 +1,13 @@
 use crate::app::lamp_dimmer::{
-    DimmerState, DimmerSettings, GammaCorrection, MAX_BRIGHTNESS, MIN_BRIGHTNESS,
-    dimmer_channel::DriverHandle,
+    DimmerChannel, DimmerSettings, DimmerState, GammaCorrection, MAX_BRIGHTNESS, MIN_BRIGHTNESS,
 };
 
-use embassy_executor::SendSpawner;
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_executor::Spawner;
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::signal::Signal;
 
 use embassy_time::{Duration, Instant, Timer};
-
-extern crate alloc;
-use alloc::sync::Arc;
+use static_cell::StaticCell;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PreviewMode {
@@ -21,27 +18,27 @@ pub enum PreviewMode {
 
 /// Builder for configuring dimmer settings with real-time preview
 pub struct DimmerSettingsBuilder {
+    channel: &'static DimmerChannel,
+    stop_gamma_signal: &'static Signal<NoopRawMutex, ()>,
+    spawner: Spawner,
+
     pending_settings: DimmerSettings,
-    publish_signal: Arc<Signal<CriticalSectionRawMutex, DimmerSettings>>,
-
     preview_mode: Option<PreviewMode>,
-    gamma_preview_task: Option<Arc<GammaPreviewTask>>,
-
-    dropped: Arc<Signal<CriticalSectionRawMutex, ()>>,
-    handle: DriverHandle,
+    gamma_preview_task: Option<GammaPreviewTask>,
 }
 
+#[derive(Clone)]
 struct GammaPreviewTask {
-    stop_signal: Signal<CriticalSectionRawMutex, ()>,
-    handle: DriverHandle,
+    channel: &'static DimmerChannel,
+    stop_signal: &'static Signal<NoopRawMutex, ()>,
     min_brightness: u8,
     max_brightness: u8,
 }
 
 #[embassy_executor::task]
-async fn animate_gamma_preview(preview_task: Arc<GammaPreviewTask>) {
+async fn animate_gamma_preview(preview_task: GammaPreviewTask) {
     const FRAME_INTERVAL: Duration = Duration::from_millis(50); // 20 FPS
-    let brightness_range = preview_task.max_brightness as i16 - preview_task.max_brightness as i16;
+    let brightness_range = preview_task.max_brightness as i16 - preview_task.min_brightness as i16;
     let start_time = Instant::now();
     static PERIOD: Duration = Duration::from_secs(5); // 5 second full cycle
 
@@ -70,11 +67,9 @@ async fn animate_gamma_preview(preview_task: Arc<GammaPreviewTask>) {
             .clamp(preview_task.min_brightness, preview_task.max_brightness);
 
         // Update dimmer
-        preview_task.handle.lock(|d| {
-            d.borrow_mut().update_state(DimmerState {
-                brightness,
-                is_on: true,
-            });
+        preview_task.channel.update_state(DimmerState {
+            brightness: brightness,
+            is_on: true,
         });
 
         Timer::after(FRAME_INTERVAL).await;
@@ -83,19 +78,18 @@ async fn animate_gamma_preview(preview_task: Arc<GammaPreviewTask>) {
 
 impl DimmerSettingsBuilder {
     /// Create a new builder from current settings
-    pub(super) fn new(
-        publish_signal: Arc<Signal<CriticalSectionRawMutex, DimmerSettings>>,
-        handle: DriverHandle,
-        settings: DimmerSettings,
-        dropped: Arc<Signal<CriticalSectionRawMutex, ()>>,
-    ) -> Self {
+    pub(super) fn new(channel: &'static DimmerChannel, spawner: Spawner) -> Self {
+        static STOP_GAMMA_SIGNAL: StaticCell<Signal<NoopRawMutex, ()>> = StaticCell::new();
+        STOP_GAMMA_SIGNAL.uninit();
+        let stop_gamma_signal = STOP_GAMMA_SIGNAL.init(Signal::new());
+
         Self {
-            pending_settings: settings.clone(),
-            publish_signal,
+            channel,
+            spawner,
+            pending_settings: channel.get_settings(),
             preview_mode: None,
             gamma_preview_task: None,
-            handle,
-            dropped,
+            stop_gamma_signal,
         }
     }
 
@@ -117,7 +111,7 @@ impl DimmerSettingsBuilder {
                 .preview_mode
                 .is_some_and(|mode| mode == PreviewMode::FullBrightness)
         {
-            self.update_brightness(brightness);
+            self.channel.set_brightness(brightness);
         }
     }
 
@@ -139,7 +133,7 @@ impl DimmerSettingsBuilder {
                 .preview_mode
                 .is_some_and(|mode| mode == PreviewMode::ZeroBrightness)
         {
-            self.update_brightness(brightness);
+            self.channel.set_brightness(brightness);
         }
     }
 
@@ -167,12 +161,13 @@ impl DimmerSettingsBuilder {
     /// Exit builder without publishing
     pub fn cancel(mut self) {
         self.stop_gamma_preview();
+        self.channel.builder_cancelled();
     }
 
     /// Call callback with pending settings and exit builder
     pub fn publish(mut self) {
         self.stop_gamma_preview();
-        self.publish_signal.signal(self.pending_settings);
+        self.channel.builder_published(self.pending_settings);
     }
 
     /// Get the pending settings (for display/validation)
@@ -191,10 +186,12 @@ impl DimmerSettingsBuilder {
 
         match new_mode {
             PreviewMode::FullBrightness => {
-                self.update_brightness(self.pending_settings.perceived_full_brightness);
+                self.channel
+                    .set_brightness(self.pending_settings.perceived_full_brightness);
             }
             PreviewMode::ZeroBrightness => {
-                self.update_brightness(self.pending_settings.perceived_zero_brightness);
+                self.channel
+                    .set_brightness(self.pending_settings.perceived_zero_brightness);
             }
             PreviewMode::GammaCorrection => {
                 // For gamma preview, start the animation
@@ -203,19 +200,9 @@ impl DimmerSettingsBuilder {
         };
     }
 
-    fn update_brightness(&mut self, brightness: u8) {
-        critical_section::with(|cs| {
-            let mut handle = self.handle.borrow(cs).borrow_mut();
-            handle.update_state(DimmerState {
-                brightness,
-                is_on: true,
-            });
-        });
-    }
-
     /// Update the dimmers config based on the current preview mode
     fn configure_preview(&mut self) {
-        let config = match self.preview_mode {
+        let preview_settings = match self.preview_mode {
             Some(PreviewMode::FullBrightness) | Some(PreviewMode::ZeroBrightness) => {
                 Some(DimmerSettings {
                     perceived_zero_brightness: MIN_BRIGHTNESS,
@@ -226,31 +213,22 @@ impl DimmerSettingsBuilder {
             Some(PreviewMode::GammaCorrection) => Some(self.pending_settings),
             None => None,
         };
-
-        if let Some(config) = config {
-            critical_section::with(|cs| {
-                let mut handle = self.handle.borrow(cs).borrow_mut();
-                handle.update_settings(config);
-            });
+        if let Some(settings) = preview_settings {
+            self.channel.update_settings(&settings);
         }
     }
 
     /// Start the gamma preview animation
     async fn start_gamma_preview(&mut self) {
-        // Start gamma animation
-        let stop_signal = Signal::new();
-
-        let preview_task = Arc::new(GammaPreviewTask {
-            stop_signal,
-            handle: self.handle.clone(),
+        let preview_task = GammaPreviewTask {
+            stop_signal: self.stop_gamma_signal,
+            channel: self.channel,
             min_brightness: self.pending_settings.perceived_zero_brightness,
             max_brightness: self.pending_settings.perceived_full_brightness,
-        });
-
-        let spawner = SendSpawner::for_current_executor().await;
+        };
 
         let token = animate_gamma_preview(preview_task.clone());
-        let _ = spawner.spawn(token.unwrap());
+        let _ = self.spawner.spawn(token.unwrap());
         self.gamma_preview_task = Some(preview_task);
     }
 
@@ -268,6 +246,6 @@ impl Drop for DimmerSettingsBuilder {
     fn drop(&mut self) {
         // Ensure any running preview is stopped when builder is dropped
         self.stop_gamma_preview();
-        self.dropped.signal(());
+        self.channel.builder_cancelled();
     }
 }

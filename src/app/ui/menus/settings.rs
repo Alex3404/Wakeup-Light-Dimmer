@@ -1,3 +1,5 @@
+use core::ops::DerefMut;
+
 use embedded_graphics::Drawable;
 use embedded_graphics::prelude::Point;
 use embedded_graphics::text::{Baseline, Text};
@@ -19,7 +21,7 @@ impl Default for SettingsMenuItem {
 }
 
 impl MenuItem for SettingsMenuItem {
-    async fn handle_input(&mut self, input: InputEvent, controller: &mut MenuController) {
+    async fn handle_input(&mut self, input: InputEvent, controller: &'static MenuController) {
         match input {
             InputEvent::ButtonLongPress => {
                 // Switch to menu settings
@@ -28,18 +30,16 @@ impl MenuItem for SettingsMenuItem {
             }
             _ => {}
         }
-
-        controller.mark_render();
     }
 
-    async fn render(&self, controller: &mut MenuController) {
+    async fn render(&self, controller: &'static MenuController) {
         let large_text = controller.menu_text_style();
-        let display = controller.display();
+        let mut display = controller.display().write().await;
 
         display.clear_buffer();
 
         Text::with_baseline("Settings", Point::new(0, 0), large_text, Baseline::Top)
-            .draw(display)
+            .draw(display.deref_mut())
             .unwrap();
 
         display.flush().await.unwrap();

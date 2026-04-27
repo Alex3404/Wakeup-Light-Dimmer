@@ -8,7 +8,6 @@ use esp_hal::gpio::Input;
 use super::RoteryInterface;
 
 extern crate alloc;
-use alloc::boxed::Box;
 use alloc::sync::{Arc, Weak};
 
 /// Rotery decoder config
@@ -16,33 +15,33 @@ use alloc::sync::{Arc, Weak};
 /// This configuration requires a clock and direction input pin
 /// There is an optional switch pin since not all rotery encoders
 /// have switch support.
-pub struct RoteryDecoderConfig<'d> {
-    clock: Input<'d>,
-    direction: Input<'d>,
-    switch: Option<Input<'d>>,
+pub struct RoteryDecoderConfig {
+    clock: Input<'static>,
+    direction: Input<'static>,
+    switch: Option<Input<'static>>,
 
     debounce: Option<Duration>,
-    interface: Box<dyn RoteryInterface>,
+    interface: &'static dyn RoteryInterface,
 }
 
-impl<'d> RoteryDecoderConfig<'d> {
+impl RoteryDecoderConfig {
     /// Create a new rotation decoder config
     pub fn new(
-        clock: Input<'d>,
-        direction: Input<'d>,
-        interface: impl RoteryInterface + 'static,
+        clock: Input<'static>,
+        direction: Input<'static>,
+        interface: &'static impl RoteryInterface,
     ) -> Self {
         Self {
             clock,
             direction,
             switch: None,
             debounce: None,
-            interface: Box::new(interface),
+            interface: interface,
         }
     }
 
     /// Assign a optional switch input
-    pub fn with_switch(self, switch: Input<'d>) -> Self {
+    pub fn with_switch(self, switch: Input<'static>) -> Self {
         Self {
             switch: Some(switch),
             ..self
@@ -71,7 +70,7 @@ pub struct RoteryDecoder {
 impl RoteryDecoder {
     pub fn new(
         spawner: Spawner,
-        config: RoteryDecoderConfig<'static>,
+        config: RoteryDecoderConfig,
     ) -> Result<Self, RoteryDecoderNewError> {
         if is_at_max_decoders() {
             return Err(RoteryDecoderNewError::MaxNumberOfInstances);
@@ -127,7 +126,7 @@ struct RoteryState {
 
 struct RoteryOptions {
     debounce: Option<Duration>,
-    interface: Box<dyn RoteryInterface>,
+    interface: &'static dyn RoteryInterface,
 }
 
 impl RoteryState {
@@ -213,9 +212,6 @@ fn is_at_max_decoders() -> bool {
         };
     }
 }
-
-pub type RotationHandler = Box<dyn Fn(Spawner, Rotation)>;
-pub type SwitchHandler = Box<dyn Fn(Spawner, bool)>;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Rotation {

@@ -7,9 +7,9 @@ pub use settings::SettingsMenuItem;
 
 pub(super) trait MenuItem: Default {
     #[allow(unused)]
-    async fn show(&mut self, controller: &mut MenuController) {}
-    async fn handle_input(&mut self, input: InputEvent, controller: &mut MenuController);
-    async fn render(&self, controller: &mut MenuController);
+    async fn show(&mut self, controller: &'static MenuController) {}
+    async fn handle_input(&mut self, input: InputEvent, controller: &'static MenuController);
+    async fn render(&self, controller: &'static MenuController);
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]

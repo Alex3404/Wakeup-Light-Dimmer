@@ -1,5 +1,5 @@
 pub trait RoteryInterface {
-    fn pressed(&mut self, pressed: bool);
-    fn rotate_cw(&mut self);
-    fn rotate_ccw(&mut self);
+    fn pressed(&self, pressed: bool);
+    fn rotate_cw(&self);
+    fn rotate_ccw(&self);
 }

@@ -1,15 +1,13 @@
 use crate::app::lamp_dimmer::{
-    DimmerChannelConfig, DimmerSettings, DimmerState, MAX_BRIGHTNESS, TimingConfig,
+    DimmerChannelConfig, DimmerSettings, DimmerState, TimingConfig,
     dimmer_settings_builder::DimmerSettingsBuilder, lookup_tables::LookupTables,
     rolling_average::TimeRollingAverage,
 };
 
-use core::cell::RefCell;
-use core::u16;
-use embassy_sync::{
-    blocking_mutex::{CriticalSectionMutex, Mutex, raw::CriticalSectionRawMutex},
-    signal::Signal,
-};
+use core::{cell::RefCell, sync::atomic::AtomicBool};
+use core::{sync::atomic::Ordering, u16};
+use embassy_executor::Spawner;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 use embassy_time::Duration;
 
 use critical_section::Mutex as CSMutex;
@@ -26,15 +24,20 @@ use esp_hal::peripherals::MCPWM0;
 use esp_hal::time::Rate;
 use log::info;
 
-extern crate alloc;
-use alloc::sync::{Arc, Weak};
+use static_cell::StaticCell;
+
+static DIMMER_CHANNEL: StaticCell<DimmerChannel> = StaticCell::new();
 
 pub struct DimmerChannel {
-    settings: DimmerSettings,
-    state: DimmerState,
-    handle: DriverHandle,
-    builder_dropped: Arc<Signal<CriticalSectionRawMutex, ()>>,
-    builder_active: bool,
+    pwm_signals: &'static DimmerPwmSignals,
+    builder_active: AtomicBool,
+
+    current_state: RefCell<DimmerState>,
+    current_settings: RefCell<DimmerSettings>,
+
+    frequency: u8,
+    timing_config: TimingConfig,
+    spawner: Spawner,
 }
 
 /// This is a light dimmer channel, it can be used to set the dimming
@@ -63,218 +66,169 @@ pub struct DimmerChannel {
 /// the phase angle for the next cycle.
 ///
 impl DimmerChannel {
-    pub fn new(config: DimmerChannelConfig) -> Result<DimmerChannel, ()> {
-        let dimmer_data = DimmerDriverData::new(
-            config.starting_state,
-            config.dimmer_settings,
-            config.timing_config,
-            config.frequency,
-        );
-        let dimmer_data = Arc::new(Mutex::new(RefCell::new(dimmer_data)));
+    pub fn new(spawner: Spawner, config: DimmerChannelConfig) -> &'static Self {
+        // Leak the pwm signals so they can be shared with interrupt handler
+        static PWM_SIGNALS: StaticCell<DimmerPwmSignals> = StaticCell::new();
+        let pwm_signals = PWM_SIGNALS.init(DimmerPwmSignals::new());
 
-        DimmerChannelDriver::configure(
+        let lookup_tables = config
+            .timing_config
+            .create_lookup_tables(config.frequency, &config.dimmer_settings);
+
+        DimmerPwmHandler::configure(
             config.mcpwm,
             config.zero_cross,
             config.gate,
-            Arc::downgrade(&dimmer_data),
+            &config.starting_state,
+            lookup_tables,
+            pwm_signals,
         );
 
-        Ok(Self {
-            settings: config.dimmer_settings,
-            state: config.starting_state,
-            handle: dimmer_data.clone(),
-            builder_dropped: Arc::new(Signal::new()),
-            builder_active: false,
+        // Leak dimmer channel so it can be shared with builder
+        DIMMER_CHANNEL.init(Self {
+            pwm_signals,
+            frequency: config.frequency,
+            timing_config: config.timing_config,
+            builder_active: AtomicBool::new(false),
+            current_state: RefCell::new(config.starting_state),
+            current_settings: RefCell::new(config.dimmer_settings),
+            spawner,
         })
     }
 
-    pub fn new_settings_builder(
-        &mut self,
-        publish_signal: Arc<Signal<CriticalSectionRawMutex, DimmerSettings>>,
-    ) -> Result<DimmerSettingsBuilder, ()> {
-        if self.builder_active {
-            // Only one builder can be active at a time to prevent conflicts
+    pub fn settings_builder(&'static self) -> Result<DimmerSettingsBuilder, ()> {
+        if self.builder_active.fetch_or(true, Ordering::Relaxed) {
+            // Another builder is already active, return an error
             return Err(());
         }
-        self.builder_active = true;
-        self.builder_dropped.reset();
 
-        let builder = DimmerSettingsBuilder::new(
-            publish_signal,
-            self.handle.clone(),
-            self.settings.clone(),
-            self.builder_dropped.clone(),
-        );
+        let builder = DimmerSettingsBuilder::new(self, self.spawner.clone());
 
         Ok(builder)
     }
 
-    pub fn get_state(&self) -> DimmerState {
-        self.state
-    }
-
-    pub fn set_state(&mut self, state: DimmerState) {
-        self.state = state;
-        self.update_state();
-    }
-
-    pub fn set_brightness(&mut self, brightness: u8) {
-        if self.state.brightness != brightness {
-            self.state.brightness = brightness;
-            self.update_state();
+    pub fn update_state(&self, state: DimmerState) {
+        *self.current_state.borrow_mut() = state;
+        if !self.builder_active.load(Ordering::Relaxed) {
+            self.pwm_signals.new_state.signal(state);
         }
     }
 
-    pub fn set_on(&mut self, on: bool) {
-        if self.state.is_on != on {
-            self.state.is_on = on;
-            self.update_state();
+    pub fn update_settings(&self, settings: &DimmerSettings) {
+        *self.current_settings.borrow_mut() = *settings;
+        if !self.builder_active.load(Ordering::Relaxed) {
+            let lookup_tables = self
+                .timing_config
+                .create_lookup_tables(self.frequency, settings);
+            self.pwm_signals.new_lookup.signal(lookup_tables);
         }
-    }
-
-    pub fn toggle(&mut self) {
-        self.state.is_on = !self.state.is_on;
-        self.update_state();
     }
 
     pub fn get_settings(&self) -> DimmerSettings {
-        self.settings
+        *self.current_settings.borrow()
     }
 
-    pub fn set_settings(&mut self, settings: DimmerSettings) {
-        self.settings = settings;
-        self.update_settings();
+    pub fn get_state(&self) -> DimmerState {
+        *self.current_state.borrow()
     }
 
-    fn builder_active(&mut self) -> bool {
-        if self.builder_active && self.builder_dropped.signaled() {
-            // Builder was dropped, reset state
-            self.builder_active = false;
-        }
-        self.builder_active
+    pub fn update_brightness(&self, func: impl FnOnce(u8) -> u8) {
+        let mut state = self.get_state();
+        state.brightness = func(state.brightness);
+        self.update_state(state);
     }
 
-    fn update_settings(&mut self) {
-        if !self.builder_active() {
-            self.handle
-                .lock(|data| data.borrow_mut().settings = self.settings);
-        }
+    pub fn toggle_on_off(&self) {
+        let mut state = self.get_state();
+        state.is_on = !state.is_on;
+        self.update_state(state);
     }
 
-    fn update_state(&mut self) {
-        info!(
-            "Updating dimmer state: is_on={}, brightness={}",
-            self.state.is_on, self.state.brightness
-        );
-        if !self.builder_active() {
-            self.handle
-                .lock(|data| data.borrow_mut().state = self.state);
-        }
+    pub fn set_on_off(&self, is_on: bool) {
+        let mut state = self.get_state();
+        state.is_on = is_on;
+        self.update_state(state);
+    }
+
+    pub fn set_brightness(&self, brightness: u8) {
+        let mut state = self.get_state();
+        state.brightness = brightness;
+        self.update_state(state);
+    }
+
+    pub(super) fn builder_cancelled(&self) {
+        self.builder_active.store(false, Ordering::Relaxed);
+
+        self.update_settings(&*self.current_settings.borrow());
+        self.update_state(*self.current_state.borrow());
+    }
+
+    pub(super) fn builder_published(&self, settings: DimmerSettings) {
+        self.builder_active.store(false, Ordering::Relaxed);
+
+        self.update_settings(&settings);
+        self.update_state(*self.current_state.borrow());
     }
 }
 
-type DimmerSlot<const SLOT: u8> = CSMutex<RefCell<Option<DimmerChannelDriver<SLOT>>>>;
-static SLOT_0: DimmerSlot<0> = CSMutex::new(RefCell::new(None));
-#[allow(dead_code)]
-static SLOT_1: DimmerSlot<1> = CSMutex::new(RefCell::new(None));
-#[allow(dead_code)]
-static SLOT_2: DimmerSlot<2> = CSMutex::new(RefCell::new(None));
+type DimmerSlot<const SLOT: u8> = CSMutex<RefCell<Option<DimmerPwmHandler<SLOT>>>>;
+static DIMMER_PWM: DimmerSlot<0> = CSMutex::new(RefCell::new(None));
 
 #[handler]
 fn mcpwm_interrupt() {
     critical_section::with(|cs| {
-        if let Some(ref mut dimmer) = *SLOT_0.borrow_ref_mut(cs) {
+        if let Some(ref mut dimmer) = *DIMMER_PWM.borrow_ref_mut(cs) {
             dimmer.interrupt();
         }
     })
 }
 
-pub(super) type DriverHandle = Arc<CriticalSectionMutex<RefCell<DimmerDriverData>>>;
-
-/// Provides the dimming data and lookup tables for the dimmer channels.
-/// This is used to share the data between the dimmer channels and the
-/// interrupt handlers since the interrupt handlers need to access the
-/// dimmer state and lookup.
-pub(super) struct DimmerDriverData {
-    frequency: u8,
-    state: DimmerState,
-    settings: DimmerSettings,
-
-    timing_confg: TimingConfig,
-    lookup_tables: LookupTables,
+pub struct DimmerPwmSignals {
+    new_state: Signal<CriticalSectionRawMutex, DimmerState>,
+    new_lookup: Signal<CriticalSectionRawMutex, LookupTables>,
 }
 
-#[allow(dead_code)]
-impl DimmerDriverData {
-    pub fn new(
-        state: DimmerState,
-        settings: DimmerSettings,
-        timing_confg: TimingConfig,
-        frequency: u8,
-    ) -> Self {
-        let lookup_tables = timing_confg.create_lookup_tables(frequency, &settings);
+impl DimmerPwmSignals {
+    pub fn new() -> Self {
         Self {
-            frequency,
-            state,
-            settings,
-            timing_confg,
-            lookup_tables,
+            new_state: Signal::new(),
+            new_lookup: Signal::new(),
         }
     }
 
-    pub fn get_state(&self) -> DimmerState {
-        self.state
+    pub fn signal_new_state(&self, state: DimmerState) {
+        self.new_state.signal(state);
     }
 
-    pub fn get_settings(&self) -> DimmerSettings {
-        self.settings
-    }
-
-    pub fn get_timing_config(&self) -> TimingConfig {
-        self.timing_confg
-    }
-
-    pub fn update_state(&mut self, state: DimmerState) {
-        self.state = state;
-    }
-
-    pub fn update_settings(&mut self, settings: DimmerSettings) {
-        self.settings = settings;
-        self.build_lookup_tables(self.frequency);
-    }
-
-    pub fn update_timing_config(&mut self, timing_config: TimingConfig) {
-        self.timing_confg = timing_config;
-        self.build_lookup_tables(self.frequency);
-    }
-
-    fn build_lookup_tables(&mut self, frequency: u8) {
-        self.lookup_tables = self
-            .timing_confg
-            .create_lookup_tables(frequency, &self.settings);
+    pub fn signal_new_lookup(&self, lookup: LookupTables) {
+        self.new_lookup.signal(lookup);
     }
 }
 
 /// Reference to lamp dimmer state for MCPWM interrupt handler
 /// Only 3 slot are available due to hardware limitations
-struct DimmerChannelDriver<const SLOT: u8> {
-    avg_time_high: TimeRollingAverage<5>,
+struct DimmerPwmHandler<const SLOT: u8> {
+    average_pulse_time: TimeRollingAverage<5>,
+    pwm_signals: &'static DimmerPwmSignals,
+
+    state: DimmerState,
+    lookup_tables: LookupTables,
+
     timer: mcpwm0::Timer<'static, SLOT>,
     pwm_pin: mcpwm0::PwmPin<'static, SLOT, true>,
     capture_channel: mcpwm0::CaptureChannel<'static, SLOT>,
-    data: WeakDriverHandle,
 }
-
-type WeakDriverHandle = Weak<CriticalSectionMutex<RefCell<DimmerDriverData>>>;
 
 /// TODO support multiple dimmer channels by using the
 /// other MCPWM timers and capture channels
-impl DimmerChannelDriver<0> {
+impl DimmerPwmHandler<0> {
     pub fn configure(
         mcpwm: MCPWM0<'static>,
         zero_cross: InputSignal<'static>,
         gate: OutputSignal<'static>,
-        state: WeakDriverHandle,
+        state: &DimmerState,
+        lookup_tables: LookupTables,
+        pwm_signals: &'static DimmerPwmSignals,
     ) {
         let clock_config = PeripheralClockConfig::with_frequency(Rate::from_mhz(1))
             .expect("Failed to create MCPWM clock config!");
@@ -330,27 +284,21 @@ impl DimmerChannelDriver<0> {
         info!("Operator configured!");
 
         let mut channel = Self {
-            avg_time_high: TimeRollingAverage::new(),
+            average_pulse_time: TimeRollingAverage::new(),
             timer,
             pwm_pin,
             capture_channel,
-            data: state,
+            pwm_signals,
+            state: state.clone(),
+            lookup_tables,
         };
 
-        critical_section::with(|_cs| {
+        critical_section::with(|cs| {
             channel.capture_channel.listen();
             mcpwm.capture_timer.start();
             channel.timer.start();
-            channel.add_to_slot();
+            *DIMMER_PWM.borrow_ref_mut(cs) = Some(channel)
         });
-    }
-
-    fn add_to_slot(self) {
-        critical_section::with(|cs| *SLOT_0.borrow_ref_mut(cs) = Some(self));
-    }
-
-    fn remove_from_slot() {
-        critical_section::with(|cs| *SLOT_0.borrow_ref_mut(cs) = None);
     }
 
     fn interrupt(&mut self) {
@@ -359,59 +307,70 @@ impl DimmerChannelDriver<0> {
 
             let event = self.capture_channel.events();
             let pulse_width = event.time() / 80;
-            self.falling_edge(pulse_width);
+
+            let average_high = self
+                .average_pulse_time
+                .new_sample(Duration::from_micros(pulse_width as u64));
+
+            let estimated_zero_cross = (average_high / 2).as_micros() as u16;
+
+            if let Some(new_state) = self.pwm_signals.new_state.try_take() {
+                self.state = new_state;
+                self.update_pwm(estimated_zero_cross);
+            }
+
+            if let Some(new_lookup) = self.pwm_signals.new_lookup.try_take() {
+                self.lookup_tables = new_lookup;
+                self.update_pwm(estimated_zero_cross);
+            }
         }
     }
 
-    fn falling_edge(&mut self, pulse_width: u32) {
-        // Estimated next zero cross with the average high time of the zero cross pulse,
-        // since the pulse is centered around the zero cross
-        let average_high = self
-            .avg_time_high
-            .new_sample(Duration::from_micros(pulse_width as u64));
-        let estimated_zero_cross = (average_high / 2).as_micros() as u16;
+    fn update_pwm(&mut self, estimated_zero_cross: u16) {
+        if !self.state.is_on || self.state.brightness == 0 {
+            self.disable_pwm_output();
+            return;
+        }
 
-        self.handle_dimming(estimated_zero_cross);
+        // Configure MCPWM for the desired brightness using the precalculated lookup tables
+        let brightness = self.state.brightness;
+        let lookup = &self.lookup_tables;
+
+        let fire_angle_us = lookup.fire_angle_table[brightness as usize];
+        let pulse_time_us = lookup.pulse_width_table[brightness as usize];
+
+        self.update_pwm_fire_angle(fire_angle_us, pulse_time_us, estimated_zero_cross);
     }
 
-    fn handle_dimming(&mut self, estimated_zero_cross: u16) {
-        let Some(data_mutex) = self.data.upgrade() else {
-            // Our dimmer channel has been dropped
-            Self::remove_from_slot();
-            return;
-        };
+    fn disable_pwm_output(&mut self) {
+        // Single write critical section not needed
+        self.pwm_pin.set_actions(
+            PwmActions::empty().on_up_counting_timer_equals_period(UpdateAction::SetLow),
+        );
+    }
 
-        critical_section::with(|cs| {
-            let data_ref = data_mutex.borrow(cs);
-            let data = data_ref.borrow();
-
-            // Output is set low on period
-            if !data.state.is_on {
-                self.pwm_pin.set_actions(
-                    PwmActions::empty().on_up_counting_timer_equals_period(UpdateAction::SetLow),
-                );
-                return;
-            }
-
-            let brightness = data.state.brightness;
-            let lookup = &data.lookup_tables;
-
-            let fire_angle_us = lookup.fire_angle_table[brightness as usize];
-            let pulse_time_us = lookup.pulse_width_table[brightness as usize];
-
+    fn update_pwm_fire_angle(
+        &mut self,
+        fire_angle_us: u16,
+        pulse_time_us: u16,
+        estimated_zero_cross: u16,
+    ) {
+        critical_section::with(|_| {
             let trigger_ticks = estimated_zero_cross.saturating_add(fire_angle_us);
 
+            // Output is set high on timestamp
+            self.pwm_pin.set_timestamp(trigger_ticks);
+
+            // Output is set low on period
+            self.timer
+                .update_period(trigger_ticks.saturating_add(pulse_time_us));
+
+            // Update pwm pins actions
             self.pwm_pin.set_actions(
                 PwmActions::empty()
                     .on_up_counting_timer_equals_timestamp(UpdateAction::SetHigh)
                     .on_up_counting_timer_equals_period(UpdateAction::SetLow),
             );
-
-            // Output is set high on timestamp
-            self.pwm_pin.set_timestamp(trigger_ticks);
-
-            self.timer
-                .update_period(trigger_ticks.saturating_add(pulse_time_us));
-        });
+        })
     }
 }

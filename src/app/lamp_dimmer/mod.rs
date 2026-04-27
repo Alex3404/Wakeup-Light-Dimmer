@@ -10,13 +10,7 @@ pub use dimmer_config::DimmerChannelConfig;
 pub use dimmer_settings_builder::DimmerSettingsBuilder;
 pub use timing_config::TimingConfig;
 
-extern crate alloc;
-use alloc::sync::Arc;
-use core::cell::RefCell;
-use embassy_sync::blocking_mutex::NoopMutex;
 use serde::{Deserialize, Serialize};
-
-pub type DimmerChannelHandle = Arc<NoopMutex<RefCell<DimmerChannel>>>;
 
 pub const MAX_BRIGHTNESS: u8 = 100;
 pub const MIN_BRIGHTNESS: u8 = 0;

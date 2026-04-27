@@ -7,11 +7,11 @@ use sequential_storage::{
     map::{MapConfig, MapStorage, PostcardValue},
 };
 
-pub trait StorageData<'a>: PostcardValue<'a> + Default + Copy {
+pub trait StorageData<'a>: PostcardValue<'a> + Default {
     const KEY: u8;
 }
 
-pub trait StorageRepositoryItem: PostcardValue<'static> + Default + Copy {}
+pub trait StorageRepositoryItem: PostcardValue<'static> + Default {}
 
 pub trait StorageRepository<T> {}
 
@@ -67,7 +67,7 @@ impl AppStorage {
     pub async fn write<'a, T: StorageData<'a>>(
         &mut self,
         value: &T,
-        buffer: &'a mut [u8],
+        buffer: &mut [u8],
     ) -> Result<(), StorageError> {
         self.nvs_storage
             .store_item(buffer, &T::KEY, value)

@@ -1,4 +1,8 @@
-use crate::app::lamp_dimmer::{DimmerSettings, DimmerState, MAX_BRIGHTNESS};
+use crate::app::{
+    lamp_dimmer::{DimmerSettings, DimmerState, MAX_BRIGHTNESS},
+    persistance::storage::StorageData,
+};
+use sequential_storage::map::PostcardValue;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
@@ -9,10 +13,10 @@ pub enum SunriseType {
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
-struct SunrisePresetIndex(pub u8);
+pub struct SunrisePresetIndex(pub u8);
 
 #[derive(Debug, Eq, PartialEq, Clone)]
-struct SunriseCurve {
+pub struct SunriseCurve {
     // Precomputed times for each brightness level during animation
     // stored as a fixed point value between 0 and 1 representing the fraction of the total duration
     brightness_at: [u16; MAX_BRIGHTNESS as usize + 1],
@@ -27,7 +31,7 @@ pub struct SunrisePreset {
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
-struct AlarmInfoIndex(pub u8);
+pub struct AlarmInfoIndex(pub u8);
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct AlarmInfo {
@@ -36,7 +40,7 @@ pub struct AlarmInfo {
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
-enum AlarmState {
+pub enum AlarmState {
     Snoozing {
         till: u64, // timestamp in seconds when the snooze ends
         alarm: AlarmInfoIndex,
@@ -51,7 +55,7 @@ enum AlarmState {
     },
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub struct AppState {
     pub dimmer_state: DimmerState,
     pub dimmer_settings: DimmerSettings,
@@ -61,13 +65,17 @@ pub struct AppState {
     pub alarms: [Option<AlarmInfo>; 7],
 }
 
+impl PostcardValue<'static> for AppState {}
+impl StorageData<'static> for AppState {
+    const KEY: u8 = 0x01;
+}
+
 impl Default for AppState {
     fn default() -> Self {
         Self {
             dimmer_state: DimmerState::default(),
             dimmer_settings: DimmerSettings::default(),
             alarm_state: None,
-            active_alarm: None,
             sunrise_presets: [None; 5],
             alarms: [None; 7],
         }
