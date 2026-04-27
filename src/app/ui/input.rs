@@ -1,5 +1,5 @@
 use super::{MenuController, internal::MenuControllerInternal};
-use crate::app::input::RoteryInterface;
+use crate::app::drivers::rotery_decoder::RoteryInterface;
 
 use embassy_executor::Spawner;
 use embassy_sync::channel::Channel;

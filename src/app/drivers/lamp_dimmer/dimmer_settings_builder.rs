@@ -1,4 +1,4 @@
-use crate::app::lamp_dimmer::{
+use super::{
     DimmerChannel, DimmerSettings, DimmerState, GammaCorrection, MAX_BRIGHTNESS, MIN_BRIGHTNESS,
 };
 

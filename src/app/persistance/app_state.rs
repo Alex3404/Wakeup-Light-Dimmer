@@ -1,59 +1,13 @@
 use crate::app::{
-    lamp_dimmer::{DimmerSettings, DimmerState, MAX_BRIGHTNESS},
+    alarm::{
+        alarm_data::{AlarmPreset, AlarmState},
+        sunrise::SunrisePreset,
+    },
+    drivers::lamp_dimmer::{DimmerSettings, DimmerState},
     persistance::storage::StorageData,
 };
 use sequential_storage::map::PostcardValue;
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
-pub enum SunriseType {
-    GentleSunrise,
-    FastSunrise,
-    OvercastSunrise,
-}
-
-#[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
-pub struct SunrisePresetIndex(pub u8);
-
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub struct SunriseCurve {
-    // Precomputed times for each brightness level during animation
-    // stored as a fixed point value between 0 and 1 representing the fraction of the total duration
-    brightness_at: [u16; MAX_BRIGHTNESS as usize + 1],
-}
-
-#[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
-pub struct SunrisePreset {
-    pub sunrise_type: SunriseType,
-    pub duration_in_seconds: u16,
-    pub start_brightness: u8,
-    pub end_brightness: u8,
-}
-
-#[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
-pub struct AlarmInfoIndex(pub u8);
-
-#[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
-pub struct AlarmInfo {
-    pub seconds_after_midnight: u16,
-    pub sunrise_preset: SunrisePresetIndex,
-}
-
-#[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
-pub enum AlarmState {
-    Snoozing {
-        till: u64, // timestamp in seconds when the snooze ends
-        alarm: AlarmInfoIndex,
-    },
-    SoundingAlarm {
-        till: u64, // timestamp in seconds when the alarm should stop
-        alarm: AlarmInfoIndex,
-    },
-    AnimatingSunrise {
-        sunrise_preset: SunrisePresetIndex,
-        started_at: u64, // timestamp in seconds when the animation started
-    },
-}
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub struct AppState {
@@ -62,7 +16,7 @@ pub struct AppState {
     pub alarm_state: Option<AlarmState>,
 
     pub sunrise_presets: [Option<SunrisePreset>; 5],
-    pub alarms: [Option<AlarmInfo>; 7],
+    pub alarms: [Option<AlarmPreset>; 7],
 }
 
 impl PostcardValue<'static> for AppState {}

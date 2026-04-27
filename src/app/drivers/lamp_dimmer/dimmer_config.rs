@@ -1,7 +1,7 @@
 use esp_hal::gpio::interconnect::{InputSignal, OutputSignal};
 use esp_hal::peripherals::MCPWM0;
 
-use crate::app::lamp_dimmer::{DimmerState, DimmerSettings, TimingConfig};
+use super::{DimmerSettings, DimmerState, TimingConfig};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GammaCorrection {

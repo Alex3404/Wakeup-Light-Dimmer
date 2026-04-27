@@ -1,9 +1,9 @@
 use crate::app::io::AppCorePeripherals;
 
-use super::input::{RoteryDecoder, RoteryDecoderConfig};
-use super::lamp_dimmer::{DimmerChannel, DimmerChannelConfig, TimingConfig};
-use super::persistance::{AppState, AppStorage};
-use super::ui::MenuController;
+use crate::app::drivers::lamp_dimmer::{DimmerChannel, DimmerChannelConfig, TimingConfig};
+use crate::app::drivers::rotery_decoder::{RoteryDecoder, RoteryDecoderConfig};
+use crate::app::persistance::{AppState, AppStorage};
+use crate::app::ui::MenuController;
 
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::rwlock::RwLock;

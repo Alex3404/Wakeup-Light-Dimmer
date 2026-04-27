@@ -1,4 +1,4 @@
-use crate::app::lamp_dimmer::{
+use super::{
     DimmerChannelConfig, DimmerSettings, DimmerState, TimingConfig,
     dimmer_settings_builder::DimmerSettingsBuilder, lookup_tables::LookupTables,
     rolling_average::TimeRollingAverage,

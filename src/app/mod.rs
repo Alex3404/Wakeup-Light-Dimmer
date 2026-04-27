@@ -1,10 +1,11 @@
+pub mod alarm;
 pub mod core;
-pub mod input;
+pub mod drivers;
 pub mod io;
-pub mod lamp_dimmer;
 pub mod persistance;
-pub mod signal_cell;
 pub mod start;
 pub mod ui;
 
+pub use drivers::lamp_dimmer::MAX_BRIGHTNESS;
+pub use drivers::lamp_dimmer::MIN_BRIGHTNESS;
 pub use start::run;
