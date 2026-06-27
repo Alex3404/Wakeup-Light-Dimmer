@@ -7,13 +7,11 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-// Needed for panic handler
-#[allow(unused_imports)]
-use esp_backtrace::*;
-
 use arduino_esp32_dimmer::app;
+use defmt::info;
 use embassy_executor::Spawner;
 use esp_hal::clock::CpuClock;
+use panic_rtt_target as _;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -25,14 +23,17 @@ esp_bootloader_esp_idf::esp_app_desc!();
 )]
 #[esp_rtos::main]
 async fn main(spawner: Spawner) -> ! {
-    esp_println::logger::init_logger_from_env();
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
-    // Initalize the heap allocator with 72000 bytes of ram
-    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 72000);
-    // COEX needs more RAM - so we've added some more
-    esp_alloc::heap_allocator!(size: 64 * 1024);
+    info!("Lol");
 
-    app::run(spawner, peripherals);
+    // Initalize the heap allocator with 72000 bytes of ram
+    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64000);
+    // COEX needs more RAM - so we've added some more
+    esp_alloc::heap_allocator!(size: 52 * 1024);
+
+    rtt_target::rtt_init_defmt!();
+    info!("Starting app");
+    app::start::run(spawner, peripherals).await
 }

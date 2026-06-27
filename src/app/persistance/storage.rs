@@ -30,11 +30,10 @@ pub struct AppStorage {
 }
 
 impl AppStorage {
-    pub fn new(flash: FlashStorage<'static>) -> Result<Self, StorageError> {
+    pub fn new(mut flash: FlashStorage<'static>) -> Result<Self, StorageError> {
         // Buffer for reading partition table
         let mut partition_table_buffer = [0u8; 0xC00];
 
-        let mut flash = flash.multicore_auto_park();
         let partition_table =
             partitions::read_partition_table(&mut flash, &mut partition_table_buffer)
                 .map_err(StorageError::PartitionError)?;

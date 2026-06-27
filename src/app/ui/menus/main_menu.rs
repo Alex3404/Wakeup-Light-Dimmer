@@ -7,8 +7,9 @@ use embedded_graphics::text::{Alignment, Text};
 use crate::app::ui::internal::MenuControllerInternal;
 use crate::app::ui::menus::MenuSelect;
 use crate::app::ui::{MenuController, input::InputEvent, menus::MenuItem};
+use crate::app::{MAX_BRIGHTNESS, MIN_BRIGHTNESS};
 
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, PartialEq, Eq, Default, defmt::Format)]
 pub struct MainMenuItem;
 
 impl MenuItem for MainMenuItem {
@@ -25,20 +26,42 @@ impl MenuItem for MainMenuItem {
                     }
                 });
             }
-            InputEvent::RotateClockwise => {
+            InputEvent::RotateClockwise(speed) => {
+                let increment = if speed < 50 {
+                    50
+                } else if speed < 100 {
+                    20
+                } else {
+                    5
+                };
+
                 controller.app_state_sender().send_modify(|user_data| {
                     if let Some(userdata) = user_data {
-                        userdata.dimmer_state.brightness =
-                            userdata.dimmer_state.brightness.saturating_add(2);
+                        userdata.dimmer_state.brightness = userdata
+                            .dimmer_state
+                            .brightness
+                            .saturating_add(increment)
+                            .clamp(MIN_BRIGHTNESS, MAX_BRIGHTNESS);
                     }
                 });
                 controller.mark_render();
             }
-            InputEvent::RotateCounterClockwise => {
+            InputEvent::RotateCounterClockwise(speed) => {
+                let increment = if speed < 50 {
+                    50
+                } else if speed < 100 {
+                    20
+                } else {
+                    5
+                };
+
                 controller.app_state_sender().send_modify(|user_data| {
                     if let Some(userdata) = user_data {
-                        userdata.dimmer_state.brightness =
-                            userdata.dimmer_state.brightness.saturating_sub(2);
+                        userdata.dimmer_state.brightness = userdata
+                            .dimmer_state
+                            .brightness
+                            .saturating_sub(increment)
+                            .clamp(MIN_BRIGHTNESS, MAX_BRIGHTNESS);
                     }
                 });
                 controller.mark_render();
@@ -58,7 +81,8 @@ impl MenuItem for MainMenuItem {
         let mut display = controller.display().write().await;
 
         display.clear_buffer();
-        let text: Result<heapless::String<4>, _> = heapless::format!("{}%", brightness);
+        let text: Result<heapless::String<6>, _> =
+            heapless::format!("{}.{:}%", brightness / 10, brightness % 10);
         let Ok(text) = text else {
             return;
         };

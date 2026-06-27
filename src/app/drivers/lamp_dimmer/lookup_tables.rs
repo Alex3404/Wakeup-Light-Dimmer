@@ -1,5 +1,5 @@
+use core::ops::Sub;
 use core::u16;
-use esp_hal::rmt::PulseCode;
 
 use super::MAX_BRIGHTNESS;
 use super::{DimmerSettings, GammaCorrection, TimingConfig};
@@ -7,15 +7,8 @@ use super::{DimmerSettings, GammaCorrection, TimingConfig};
 // Lookup table size for fire angle and fire pulse width
 const LOOKUP_TABLE_SIZE: usize = MAX_BRIGHTNESS as usize + 1;
 
-// Can't allow more mircoseconds then the pulse width allows
-const MINIMUM_FREQUENCY: u8 = (1_000_000 / (PulseCode::MAX_LEN as u32 * 2) + 1) as u8;
-
-const _: () = assert!(
-    MINIMUM_FREQUENCY < 50,
-    "Minimum frequency cannot be above 50Hz ( We support 50Hz )"
-);
-
-pub struct LookupTables {
+#[derive(Debug, Clone)]
+pub struct LookupTable {
     pub fire_angle_table: [u16; LOOKUP_TABLE_SIZE],
     pub pulse_width_table: [u16; LOOKUP_TABLE_SIZE],
 }
@@ -41,21 +34,12 @@ impl TimingConfig {
         }
     }
 
-    pub fn create_lookup_tables(
+    pub fn populate_lookup_table(
         &self,
         frequency: u8,
         dimmer_settings: &DimmerSettings,
-    ) -> LookupTables {
-        let mut fire_angle_table: [u16; LOOKUP_TABLE_SIZE] = [0; LOOKUP_TABLE_SIZE];
-        let mut pulse_width_table: [u16; LOOKUP_TABLE_SIZE] = [0; LOOKUP_TABLE_SIZE];
-
-        if frequency == 0 {
-            return LookupTables {
-                fire_angle_table,
-                pulse_width_table,
-            };
-        }
-
+        lookup_table: &mut LookupTable,
+    ) {
         let total_angle_time_micros = 1_000_000u32.strict_div(frequency as u32 * 2);
 
         let mut brightness_index = 0;
@@ -66,7 +50,7 @@ impl TimingConfig {
 
             // Turn brightness values from 0 to MAX_BRIGHTNESS divided by MAX_BRIGHTNESS
             // To yield a fraction as a fixed point number as described above
-            let reserved_start_fraction =
+            let reserved_start_fraction: u32 =
                 (MAX_BRIGHTNESS - dimmer_settings.perceived_full_brightness) as u32
                     * u16::MAX as u32
                     / MAX_BRIGHTNESS as u32;
@@ -82,7 +66,8 @@ impl TimingConfig {
             let trigger_start_micros =
                 fixed_point_mul!(total_angle_time_micros, reserved_start_fraction, 16);
             let trigger_end_micros =
-                fixed_point_mul!(total_angle_time_micros, reserved_end_fraction, 16);
+                fixed_point_mul!(total_angle_time_micros, reserved_end_fraction, 16)
+                    .saturating_add(self.latching_time_before_next_zero_us as u32);
 
             // Compute the brightess fraction
             // as a fixed point number as described above
@@ -96,8 +81,7 @@ impl TimingConfig {
             // Get the non reserved part of the wave
             let total_allowed_trigger_micros = total_angle_time_micros
                 .saturating_sub(trigger_start_micros)
-                .saturating_sub(trigger_end_micros)
-                .saturating_sub(self.latching_time_before_next_zero_us as u32);
+                .saturating_sub(trigger_end_micros);
 
             // Multiply our wave time by 1.0 - brightness
             let one_minus_fraction = (u16::MAX as u32).saturating_sub(brightness_fraction);
@@ -107,19 +91,28 @@ impl TimingConfig {
             let trigger_time_micros = trigger_start_micros.saturating_add(trigger_time_us);
             let trigger_time_micros = trigger_time_micros as u16;
 
+            // Cut off time where the pulse should go low
+            let cut_off_time_micros =
+                total_angle_time_micros.saturating_sub(trigger_end_micros) as u16;
+
             let latch_time_micros = self
                 .latching_time_after_zero_us
                 .saturating_sub(trigger_time_micros)
-                .max(self.minimum_latching_time_us);
+                .max(self.minimum_latching_time_us)
+                .min(cut_off_time_micros.saturating_sub(trigger_time_micros));
 
-            pulse_width_table[brightness_index] = latch_time_micros;
-            fire_angle_table[brightness_index] = trigger_time_micros;
+            lookup_table.pulse_width_table[brightness_index] = latch_time_micros;
+            lookup_table.fire_angle_table[brightness_index] = trigger_time_micros;
             brightness_index += 1;
         }
+    }
+}
 
-        LookupTables {
-            fire_angle_table,
-            pulse_width_table,
+impl Default for LookupTable {
+    fn default() -> Self {
+        Self {
+            fire_angle_table: [0; LOOKUP_TABLE_SIZE],
+            pulse_width_table: [0; LOOKUP_TABLE_SIZE],
         }
     }
 }

@@ -1,4 +1,5 @@
 use esp_hal::gpio::interconnect::{InputSignal, OutputSignal};
+use esp_hal::mcpwm::AnyMcPwm;
 use esp_hal::peripherals::MCPWM0;
 
 use super::{DimmerSettings, DimmerState, TimingConfig};
@@ -21,12 +22,12 @@ pub enum GammaCorrection {
 /// A mininum triac gate pulse, defaults to 150us
 /// A gamma correction defaults to linear
 /// - Use Exponental for LED bulbs it offers a more realistic dimming
-pub struct DimmerChannelConfig {
+pub struct TriacChannelConfig {
     // Required properties
     pub(super) frequency: u8,
     pub(super) gate: OutputSignal<'static>,
     pub(super) zero_cross: InputSignal<'static>,
-    pub(super) mcpwm: MCPWM0<'static>,
+    pub(super) mcpwm: AnyMcPwm<'static>,
 
     /// Defaults to off
     pub(super) starting_state: DimmerState,
@@ -36,13 +37,13 @@ pub struct DimmerChannelConfig {
     pub(super) dimmer_settings: DimmerSettings,
 }
 
-impl DimmerChannelConfig {
+impl TriacChannelConfig {
     pub fn new(
         frequency: u8,
         timing_config: TimingConfig,
         zero_cross_pin: InputSignal<'static>,
         gate_output_pin: OutputSignal<'static>,
-        mcpwm: MCPWM0<'static>,
+        mcpwm: AnyMcPwm<'static>,
     ) -> Self {
         Self {
             frequency,

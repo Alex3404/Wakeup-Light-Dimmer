@@ -1,6 +1,8 @@
+use crate::app::drivers::lamp_dimmer::Brightness;
+
 use super::{
-    DimmerChannelConfig, DimmerSettings, DimmerState, TimingConfig,
-    dimmer_settings_builder::DimmerSettingsBuilder, lookup_tables::LookupTables,
+    DimmerSettings, DimmerState, TimingConfig, TriacChannelConfig,
+    dimmer_settings_builder::DimmerSettingsBuilder, lookup_tables::LookupTable,
     rolling_average::TimeRollingAverage,
 };
 
@@ -11,22 +13,21 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal}
 use embassy_time::Duration;
 
 use critical_section::Mutex as CSMutex;
+use enumset::EnumSet;
 use esp_hal::gpio::interconnect::{InputSignal, OutputSignal};
 use esp_hal::handler;
 
-use esp_hal::mcpwm::capture::{CaptureChannelConfig, CaptureMode, CaptureTimerConfig};
-use esp_hal::mcpwm::mcpwm0;
-use esp_hal::mcpwm::operator::{PwmActions, PwmPinConfig, PwmUpdateMethod, UpdateAction};
-use esp_hal::mcpwm::timer::{PeriodUpdatingMethod, PwmWorkingMode};
-use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
+use esp_hal::mcpwm::capture::{CaptureChannel, CaptureEdge, CaptureMode, CaptureTimerConfig};
+use esp_hal::mcpwm::operator::{PwmActions, PwmPin, PwmPinConfig, PwmUpdateMethod, UpdateAction};
+use esp_hal::mcpwm::timer::{
+    PeriodUpdatingMethod, PwmWorkingMode, StopCondition, SyncOutSelect, Timer, TimerEvent,
+};
+use esp_hal::mcpwm::{AnyMcPwm, McPwm, PeripheralClockConfig};
 
-use esp_hal::peripherals::MCPWM0;
 use esp_hal::time::Rate;
-use log::info;
 
-use static_cell::StaticCell;
-
-static DIMMER_CHANNEL: StaticCell<DimmerChannel> = StaticCell::new();
+extern crate alloc;
+use alloc::boxed::Box;
 
 pub struct DimmerChannel {
     pwm_signals: &'static DimmerPwmSignals,
@@ -41,9 +42,7 @@ pub struct DimmerChannel {
 }
 
 /// This is a light dimmer channel, it can be used to set the dimming
-/// of a triac circit. For example a Triac such as the BTA16-600B
-/// with the gate connected via a octocoupled random-phase triac such as a
-/// H11AA1 with its main terminal inputs in series with two 33k ohm resistors.
+/// of a triac circit.
 ///
 /// The gate pin given to the light dimmer channel will be the output pin for phase
 /// angle control, should be connected to the octocoupled random-phase triac
@@ -66,14 +65,16 @@ pub struct DimmerChannel {
 /// the phase angle for the next cycle.
 ///
 impl DimmerChannel {
-    pub fn new(spawner: Spawner, config: DimmerChannelConfig) -> &'static Self {
-        // Leak the pwm signals so they can be shared with interrupt handler
-        static PWM_SIGNALS: StaticCell<DimmerPwmSignals> = StaticCell::new();
-        let pwm_signals = PWM_SIGNALS.init(DimmerPwmSignals::new());
+    pub fn new(spawner: Spawner, config: TriacChannelConfig) -> &'static Self {
+        // The pwm signals so they can be shared with interrupt handler
+        let pwm_signals = Box::leak(Box::new(DimmerPwmSignals::new()));
 
-        let lookup_tables = config
-            .timing_config
-            .create_lookup_tables(config.frequency, &config.dimmer_settings);
+        let mut lookup_tables = LookupTable::default();
+        config.timing_config.populate_lookup_table(
+            config.frequency,
+            &config.dimmer_settings,
+            &mut lookup_tables,
+        );
 
         DimmerPwmHandler::configure(
             config.mcpwm,
@@ -85,7 +86,7 @@ impl DimmerChannel {
         );
 
         // Leak dimmer channel so it can be shared with builder
-        DIMMER_CHANNEL.init(Self {
+        Box::leak(Box::new(Self {
             pwm_signals,
             frequency: config.frequency,
             timing_config: config.timing_config,
@@ -93,7 +94,7 @@ impl DimmerChannel {
             current_state: RefCell::new(config.starting_state),
             current_settings: RefCell::new(config.dimmer_settings),
             spawner,
-        })
+        }))
     }
 
     pub fn settings_builder(&'static self) -> Result<DimmerSettingsBuilder, ()> {
@@ -117,9 +118,9 @@ impl DimmerChannel {
     pub fn update_settings(&self, settings: &DimmerSettings) {
         *self.current_settings.borrow_mut() = *settings;
         if !self.builder_active.load(Ordering::Relaxed) {
-            let lookup_tables = self
-                .timing_config
-                .create_lookup_tables(self.frequency, settings);
+            let mut lookup_tables = LookupTable::default();
+            self.timing_config
+                .populate_lookup_table(self.frequency, settings, &mut lookup_tables);
             self.pwm_signals.new_lookup.signal(lookup_tables);
         }
     }
@@ -132,7 +133,7 @@ impl DimmerChannel {
         *self.current_state.borrow()
     }
 
-    pub fn update_brightness(&self, func: impl FnOnce(u8) -> u8) {
+    pub fn update_brightness(&self, func: impl FnOnce(Brightness) -> Brightness) {
         let mut state = self.get_state();
         state.brightness = func(state.brightness);
         self.update_state(state);
@@ -150,7 +151,7 @@ impl DimmerChannel {
         self.update_state(state);
     }
 
-    pub fn set_brightness(&self, brightness: u8) {
+    pub fn set_brightness(&self, brightness: Brightness) {
         let mut state = self.get_state();
         state.brightness = brightness;
         self.update_state(state);
@@ -171,8 +172,8 @@ impl DimmerChannel {
     }
 }
 
-type DimmerSlot<const SLOT: u8> = CSMutex<RefCell<Option<DimmerPwmHandler<SLOT>>>>;
-static DIMMER_PWM: DimmerSlot<0> = CSMutex::new(RefCell::new(None));
+type DimmerSlot = CSMutex<RefCell<Option<DimmerPwmHandler>>>;
+static DIMMER_PWM: DimmerSlot = CSMutex::new(RefCell::new(None));
 
 #[handler]
 fn mcpwm_interrupt() {
@@ -185,7 +186,7 @@ fn mcpwm_interrupt() {
 
 pub struct DimmerPwmSignals {
     new_state: Signal<CriticalSectionRawMutex, DimmerState>,
-    new_lookup: Signal<CriticalSectionRawMutex, LookupTables>,
+    new_lookup: Signal<CriticalSectionRawMutex, LookupTable>,
 }
 
 impl DimmerPwmSignals {
@@ -200,93 +201,102 @@ impl DimmerPwmSignals {
         self.new_state.signal(state);
     }
 
-    pub fn signal_new_lookup(&self, lookup: LookupTables) {
+    pub fn signal_new_lookup(&self, lookup: LookupTable) {
         self.new_lookup.signal(lookup);
     }
 }
 
 /// Reference to lamp dimmer state for MCPWM interrupt handler
 /// Only 3 slot are available due to hardware limitations
-struct DimmerPwmHandler<const SLOT: u8> {
-    average_pulse_time: TimeRollingAverage<5>,
+struct DimmerPwmHandler {
+    pos_pulse_time: TimeRollingAverage<5>,
+    neg_pulse_time: TimeRollingAverage<5>,
+    pos_phase: AtomicBool,
+
     pwm_signals: &'static DimmerPwmSignals,
 
     state: DimmerState,
-    lookup_tables: LookupTables,
+    lookup_tables: LookupTable,
 
-    timer: mcpwm0::Timer<'static, SLOT>,
-    pwm_pin: mcpwm0::PwmPin<'static, SLOT, true>,
-    capture_channel: mcpwm0::CaptureChannel<'static, SLOT>,
+    phase_timer: Timer<'static>,
+    zc_timer: Timer<'static>,
+
+    gate_pwm_pin: PwmPin<'static, true>,
+    capture_channel: CaptureChannel<'static>,
 }
 
 /// TODO support multiple dimmer channels by using the
 /// other MCPWM timers and capture channels
-impl DimmerPwmHandler<0> {
+impl DimmerPwmHandler {
     pub fn configure(
-        mcpwm: MCPWM0<'static>,
+        mcpwm: AnyMcPwm<'static>,
         zero_cross: InputSignal<'static>,
         gate: OutputSignal<'static>,
         state: &DimmerState,
-        lookup_tables: LookupTables,
+        lookup_tables: LookupTable,
         pwm_signals: &'static DimmerPwmSignals,
     ) {
+        // 1 Megahertz clock gives a resolution of 1 microsecond
         let clock_config = PeripheralClockConfig::with_frequency(Rate::from_mhz(1))
             .expect("Failed to create MCPWM clock config!");
 
         // Create mcpwm driver with interrupt handler
         let mut mcpwm = McPwm::new(mcpwm, clock_config.clone());
         mcpwm.set_interrupt_handler(mcpwm_interrupt);
-        info!("Created mcpwm");
 
-        // Set sync event on falling edges ( before zero cross event )
-        mcpwm.sync0.set_invert(true);
+        // Set sync event on falling edges ( before zero cross pulse )
+        // mcpwm.sync0.set_invert(true);
         mcpwm.sync0.set_signal(zero_cross.clone());
-        info!("Sync configured!");
-
-        // Capture rising edges phase aligned with last zero edge
-        let capture_config =
-            CaptureChannelConfig::default().with_capture_mode(CaptureMode::RisingEdge);
 
         // Capture is used to give a average for zero cross pulse length
-        let mut capture_channel = mcpwm
-            .capture0
-            .configure(capture_config)
-            .with_signal_input(zero_cross.clone());
+        let mut capture_channel = mcpwm.capture0.with_signal_input(zero_cross.clone());
         capture_channel.set_enable(true);
-        info!("Capture channel configured!");
 
         // Reset capture timer on falling edges
         let cap_timer_config = CaptureTimerConfig::default().with_sync_phase(0);
         mcpwm.capture_timer.apply_config(cap_timer_config);
-        mcpwm.capture_timer.set_sync_in(&mcpwm.sync0);
-        info!("Capture timer configured!");
+        mcpwm.capture_timer.set_sync_in(mcpwm.sync0.kind());
 
-        // Start timers with defaults
-        let timer_config = clock_config
-            .timer_clock_with_prescaler(u16::MAX, PwmWorkingMode::Increase, 0)
-            .with_period_updating_method(PeriodUpdatingMethod::Sync)
+        // Timer 0 is used for outputting sync event at zero cross event
+        let zc_timer_config = clock_config
+            .timer_clock_with_prescaler(u16::MAX, PwmWorkingMode::Increase, 31)
+            .with_period_updating_method(PeriodUpdatingMethod::TimerEqualsZeroOrSync)
+            .with_sync_out(SyncOutSelect::SyncWhenEqualPeriod)
+            .with_stop_condition(StopCondition::StopAtPeriod)
             .with_phase(0);
 
-        mcpwm.timer0.set_sync_in(&mcpwm.sync0);
-        mcpwm
-            .timer0
+        let mut zc_timer = mcpwm.timer0;
+        let _ = zc_timer.apply_config(zc_timer_config);
+        zc_timer.set_sync_in(mcpwm.sync0.kind());
+
+        // Phase timer config
+        let timer_config = clock_config
+            .timer_clock_with_prescaler(u16::MAX, PwmWorkingMode::Increase, 31)
+            .with_period_updating_method(PeriodUpdatingMethod::Sync)
+            .with_stop_condition(StopCondition::StopAtPeriod)
+            .with_phase(0);
+        let mut phase_timer = mcpwm.timer1;
+
+        let _ = phase_timer.apply_config(timer_config);
+        phase_timer.set_sync_in(zc_timer.get_sync_out());
+        phase_timer
             .apply_config(timer_config)
             .expect("Timer 0 failed to apply config");
-        info!("PWM timer configured!");
 
         // Setup operator
-        mcpwm.operator0.set_timer(&mcpwm.timer0);
-        let timer = mcpwm.timer0;
-
         // Configure pwm pin to be idle
+        let mut gate_op = mcpwm.operator0;
         let pwm_pin_config = PwmPinConfig::new(PwmActions::empty(), PwmUpdateMethod::SYNC_ON_ZERO);
-        let pwm_pin = mcpwm.operator0.with_pin_a(gate, pwm_pin_config);
-        info!("Operator configured!");
+        gate_op.set_timer(&phase_timer);
+        let pwm_pin_a = gate_op.with_pin_a(gate, pwm_pin_config);
 
         let mut channel = Self {
-            average_pulse_time: TimeRollingAverage::new(),
-            timer,
-            pwm_pin,
+            pos_pulse_time: TimeRollingAverage::new(),
+            neg_pulse_time: TimeRollingAverage::new(),
+            pos_phase: AtomicBool::new(true),
+            phase_timer,
+            zc_timer,
+            gate_pwm_pin: pwm_pin_a,
             capture_channel,
             pwm_signals,
             state: state.clone(),
@@ -294,41 +304,85 @@ impl DimmerPwmHandler<0> {
         };
 
         critical_section::with(|cs| {
-            channel.capture_channel.listen();
+            channel.capture_channel.listen(CaptureMode::AnyEdge);
+            channel
+                .zc_timer
+                .listen(EnumSet::only(TimerEvent::TimerEqualPeriod));
             mcpwm.capture_timer.start();
-            channel.timer.start();
-            *DIMMER_PWM.borrow_ref_mut(cs) = Some(channel)
+            channel.update_phase_pwm();
+            *DIMMER_PWM.borrow_ref_mut(cs) = Some(channel);
         });
+    }
+
+    fn start_edge(&mut self) {
+        self.zc_timer.start();
+    }
+
+    fn zc_timer_event(&mut self) {
+        // Zero cross event
+        self.phase_timer.start();
+    }
+
+    fn end_edge(&mut self) {
+        let event = self.capture_channel.events();
+        let pulse_width = event.time() / 32;
+
+        // Zero cross pulse time
+        // zc_timer syncs on the start of the zero cross pulse so use the other sample to get the pulse time
+        let average_high = if self.pos_phase.fetch_xor(true, Ordering::Relaxed) {
+            self.pos_pulse_time
+                .new_sample(Duration::from_micros(pulse_width as u64));
+            self.neg_pulse_time.average()
+        } else {
+            self.neg_pulse_time
+                .new_sample(Duration::from_micros(pulse_width as u64));
+            self.pos_pulse_time.average()
+        };
+
+        let estimated_zero_cross = (average_high / 2).as_micros() as u16;
+
+        // ZC timer is phase aligned to start of zero cross pulse
+        // ZC timer outputs a sync event at the estimated zero cross time
+        self.zc_timer.update_period(estimated_zero_cross);
+
+        if let Some(new_state) = self.pwm_signals.new_state.try_take() {
+            self.state = new_state;
+            self.update_phase_pwm();
+        }
+
+        if let Some(new_lookup) = self.pwm_signals.new_lookup.try_take() {
+            self.lookup_tables = new_lookup;
+            self.update_phase_pwm();
+        }
     }
 
     fn interrupt(&mut self) {
         if self.capture_channel.is_interrupt_set() {
             self.capture_channel.clear_interrupt();
 
-            let event = self.capture_channel.events();
-            let pulse_width = event.time() / 80;
-
-            let average_high = self
-                .average_pulse_time
-                .new_sample(Duration::from_micros(pulse_width as u64));
-
-            let estimated_zero_cross = (average_high / 2).as_micros() as u16;
-
-            if let Some(new_state) = self.pwm_signals.new_state.try_take() {
-                self.state = new_state;
-                self.update_pwm(estimated_zero_cross);
+            match self.capture_channel.events().edge() {
+                CaptureEdge::Rising => self.start_edge(),
+                CaptureEdge::Falling => self.end_edge(),
             }
+        }
 
-            if let Some(new_lookup) = self.pwm_signals.new_lookup.try_take() {
-                self.lookup_tables = new_lookup;
-                self.update_pwm(estimated_zero_cross);
+        let events = self.zc_timer.interrupts();
+        if events.is_empty() {
+            return;
+        }
+
+        self.zc_timer.clear_interrupts(events);
+        for event in events {
+            match event {
+                TimerEvent::TimerEqualPeriod => self.zc_timer_event(),
+                _ => {}
             }
         }
     }
 
-    fn update_pwm(&mut self, estimated_zero_cross: u16) {
+    fn update_phase_pwm(&mut self) {
         if !self.state.is_on || self.state.brightness == 0 {
-            self.disable_pwm_output();
+            self.disable_phase_pwm();
             return;
         }
 
@@ -339,37 +393,30 @@ impl DimmerPwmHandler<0> {
         let fire_angle_us = lookup.fire_angle_table[brightness as usize];
         let pulse_time_us = lookup.pulse_width_table[brightness as usize];
 
-        self.update_pwm_fire_angle(fire_angle_us, pulse_time_us, estimated_zero_cross);
+        self.update_pwm_fire_angle(fire_angle_us, pulse_time_us);
     }
 
-    fn disable_pwm_output(&mut self) {
-        // Single write critical section not needed
-        self.pwm_pin.set_actions(
+    fn disable_phase_pwm(&mut self) {
+        self.gate_pwm_pin.set_actions(
             PwmActions::empty().on_up_counting_timer_equals_period(UpdateAction::SetLow),
         );
     }
 
-    fn update_pwm_fire_angle(
-        &mut self,
-        fire_angle_us: u16,
-        pulse_time_us: u16,
-        estimated_zero_cross: u16,
-    ) {
+    fn update_pwm_fire_angle(&mut self, fire_angle_us: u16, pulse_time_us: u16) {
         critical_section::with(|_| {
-            let trigger_ticks = estimated_zero_cross.saturating_add(fire_angle_us);
-
             // Output is set high on timestamp
-            self.pwm_pin.set_timestamp(trigger_ticks);
+            self.gate_pwm_pin.set_timestamp(fire_angle_us);
 
             // Output is set low on period
-            self.timer
-                .update_period(trigger_ticks.saturating_add(pulse_time_us));
+            self.phase_timer
+                .update_period(fire_angle_us.saturating_add(pulse_time_us));
 
             // Update pwm pins actions
-            self.pwm_pin.set_actions(
+            self.gate_pwm_pin.set_actions(
                 PwmActions::empty()
                     .on_up_counting_timer_equals_timestamp(UpdateAction::SetHigh)
-                    .on_up_counting_timer_equals_period(UpdateAction::SetLow),
+                    .on_up_counting_timer_equals_period(UpdateAction::SetLow)
+                    .on_up_counting_timer_equals_zero(UpdateAction::SetLow),
             );
         })
     }

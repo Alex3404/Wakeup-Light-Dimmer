@@ -2,7 +2,7 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use embassy_executor::Spawner;
 use embassy_futures::select::Either;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, rwlock::RwLock};
-use embassy_time::{Duration, WithTimeout};
+use embassy_time::{Duration, Instant, WithTimeout};
 use esp_hal::gpio::Input;
 
 use super::RoteryInterface;
@@ -76,11 +76,7 @@ impl RoteryDecoder {
             return Err(RoteryDecoderNewError::MaxNumberOfInstances);
         }
 
-        let state = Arc::new(RwLock::new(RoteryState {
-            clock_state: false,
-            rotate_state: false,
-            fired: false,
-        }));
+        let state = Arc::new(RwLock::new(RoteryState::default()));
 
         let options = Arc::new(RwLock::new(RoteryOptions {
             debounce: config.debounce,
@@ -117,11 +113,23 @@ impl Drop for RoteryDecoder {
 }
 
 /// State machine for rotery decoder
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct RoteryState {
+    last_rotate: Instant,
     clock_state: bool,
     rotate_state: bool,
     fired: bool,
+}
+
+impl Default for RoteryState {
+    fn default() -> Self {
+        Self {
+            last_rotate: Instant::now(),
+            clock_state: false,
+            rotate_state: false,
+            fired: false,
+        }
+    }
 }
 
 struct RoteryOptions {
@@ -275,19 +283,24 @@ async fn decoder_loop(
             Either::First(clock_state) => state.write().await.clock_changed(clock_state),
             Either::Second(rotate_state) => state.write().await.rotate_changed(rotate_state),
         };
-        drop(state); // Release lock before awaiting
 
         let Some(rotation) = result else {
             continue;
         };
+
+        let mut state_w = state.write().await;
+        let delta = state_w.last_rotate.elapsed();
+        state_w.last_rotate = Instant::now();
+        drop(state_w);
+        drop(state);
 
         // Fire rotation handler with rotation
         let mut options_w = options.write().await;
 
         let handler = &mut options_w.interface;
         match rotation {
-            Rotation::Clockwise => handler.rotate_cw(),
-            Rotation::Counterclockwise => handler.rotate_ccw(),
+            Rotation::Clockwise => handler.rotate_cw(delta.as_millis() as u16),
+            Rotation::Counterclockwise => handler.rotate_ccw(delta.as_millis() as u16),
         }
     }
 }

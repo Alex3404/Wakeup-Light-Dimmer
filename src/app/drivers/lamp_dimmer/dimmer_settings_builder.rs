@@ -1,5 +1,6 @@
 use super::{
-    DimmerChannel, DimmerSettings, DimmerState, GammaCorrection, MAX_BRIGHTNESS, MIN_BRIGHTNESS,
+    Brightness, DimmerChannel, DimmerSettings, DimmerState, GammaCorrection, MAX_BRIGHTNESS,
+    MIN_BRIGHTNESS,
 };
 
 use embassy_executor::Spawner;
@@ -31,8 +32,8 @@ pub struct DimmerSettingsBuilder {
 struct GammaPreviewTask {
     channel: &'static DimmerChannel,
     stop_signal: &'static Signal<NoopRawMutex, ()>,
-    min_brightness: u8,
-    max_brightness: u8,
+    min_brightness: Brightness,
+    max_brightness: Brightness,
 }
 
 #[embassy_executor::task]
@@ -62,7 +63,7 @@ async fn animate_gamma_preview(preview_task: GammaPreviewTask) {
             .saturating_add(
                 (normalized
                     .saturating_mul(brightness_range as u64)
-                    .div_ceil(PERIOD.as_millis())) as u8,
+                    .div_ceil(PERIOD.as_millis())) as Brightness,
             )
             .clamp(preview_task.min_brightness, preview_task.max_brightness);
 
@@ -94,7 +95,7 @@ impl DimmerSettingsBuilder {
     }
 
     /// Set the full perceived brightness during preview
-    pub async fn set_full_brightness(&mut self, brightness: u8) {
+    pub async fn set_full_brightness(&mut self, brightness: Brightness) {
         let brightness = brightness.clamp(
             self.pending_settings
                 .perceived_zero_brightness
@@ -116,7 +117,7 @@ impl DimmerSettingsBuilder {
     }
 
     /// Set the zero perceived brightness during preview
-    pub async fn set_zero_brightness(&mut self, brightness: u8) {
+    pub async fn set_zero_brightness(&mut self, brightness: Brightness) {
         let brightness = brightness.clamp(
             MIN_BRIGHTNESS,
             self.pending_settings

@@ -1,6 +1,7 @@
 use super::{MenuController, internal::MenuControllerInternal};
 use crate::app::drivers::rotery_decoder::RoteryInterface;
 
+use defmt::info;
 use embassy_executor::Spawner;
 use embassy_sync::channel::Channel;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, signal::Signal};
@@ -12,8 +13,8 @@ static LONG_BUTTON_PRESS: Duration = Duration::from_millis(1000);
 pub enum InputEvent {
     ButtonClick,
     ButtonLongPress,
-    RotateClockwise,
-    RotateCounterClockwise,
+    RotateClockwise(u16),        // Speed of rotation in ms since last event
+    RotateCounterClockwise(u16), // Speed of rotation in ms since last event
 }
 
 static MENU_CONTROLLER_INTERFACE: StaticCell<MenuControllerInterface> = StaticCell::new();
@@ -46,14 +47,16 @@ impl RoteryInterface for MenuControllerInterface {
         self.button_event.signal(pressed);
     }
 
-    fn rotate_cw(&self) {
-        let _ = self.rotate_queue.try_send(InputEvent::RotateClockwise);
-    }
-
-    fn rotate_ccw(&self) {
+    fn rotate_cw(&self, speed: u16) {
         let _ = self
             .rotate_queue
-            .try_send(InputEvent::RotateCounterClockwise);
+            .try_send(InputEvent::RotateClockwise(speed));
+    }
+
+    fn rotate_ccw(&self, speed: u16) {
+        let _ = self
+            .rotate_queue
+            .try_send(InputEvent::RotateCounterClockwise(speed));
     }
 }
 
@@ -78,8 +81,10 @@ async fn button_press_loop(
         // If the wait timed out, it means the button is still pressed, so we treat it as a long press
         if result.is_err() {
             menu.handle_input(InputEvent::ButtonLongPress).await;
+            info!("Button long press detected");
         } else if result.is_ok_and(|pressed| !pressed) {
             menu.handle_input(InputEvent::ButtonClick).await;
+            info!("Button click detected");
         }
     }
 }

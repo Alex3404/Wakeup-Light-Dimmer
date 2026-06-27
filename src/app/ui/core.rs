@@ -1,5 +1,10 @@
+use embassy_embedded_hal::{adapter::BlockingAsync, shared_bus::blocking::i2c::I2cDevice};
 use embassy_executor::Spawner;
-use embassy_sync::{blocking_mutex::raw::NoopRawMutex, rwlock::RwLock, signal::Signal};
+use embassy_sync::{
+    blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex},
+    rwlock::RwLock,
+    signal::Signal,
+};
 use embedded_graphics::{
     mono_font::{
         MonoTextStyle, MonoTextStyleBuilder,
@@ -12,19 +17,22 @@ use ssd1306::{
     I2CDisplayInterface, Ssd1306Async,
     mode::{BufferedGraphicsModeAsync, DisplayConfigAsync},
     prelude::{DisplayRotation, I2CInterface},
-    size::DisplaySize128x64,
+    size::{DisplaySize, DisplaySize128x64},
 };
 
-use esp_hal::{Async, i2c::master::I2c};
+use defmt::info;
+use esp_hal::{Async, Blocking, i2c};
 use static_cell::StaticCell;
 
 use super::input::{InputEvent, MenuControllerInterface};
 use super::menus::*;
 use crate::app::core::{AppStateReceiver, AppStateSender};
 
-type Interface = I2CInterface<I2c<'static, Async>>;
-type Size = DisplaySize128x64;
-type Display = Ssd1306Async<Interface, Size, BufferedGraphicsModeAsync<Size>>;
+pub type I2c =
+    BlockingAsync<I2cDevice<'static, CriticalSectionRawMutex, i2c::master::I2c<'static, Blocking>>>;
+pub type Interface = I2CInterface<I2c>;
+pub type MenuSize = DisplaySize128x64;
+pub type Display = Ssd1306Async<Interface, MenuSize, BufferedGraphicsModeAsync<MenuSize>>;
 
 static CONTROLLER: StaticCell<MenuController> = StaticCell::new();
 
@@ -35,6 +43,7 @@ pub struct MenuController {
     display: RwLock<NoopRawMutex, Display>,
     menu_text_style: MonoTextStyle<'static, BinaryColor>,
     large_text_style: MonoTextStyle<'static, BinaryColor>,
+    selected_menu_text_style: MonoTextStyle<'static, BinaryColor>,
 
     current_menu: RwLock<NoopRawMutex, Option<MenuState>>,
     render_signal: &'static Signal<NoopRawMutex, ()>,
@@ -69,7 +78,7 @@ impl MenuController {
 
     pub async fn initalize(
         spawner: Spawner,
-        i2c: I2c<'static, Async>,
+        i2c: I2c,
         app_state_receive: AppStateReceiver,
         app_state_sender: AppStateSender,
     ) -> &'static MenuController {
@@ -81,6 +90,12 @@ impl MenuController {
         let menu_text_style = MonoTextStyleBuilder::new()
             .font(&FONT_6X10)
             .text_color(BinaryColor::On)
+            .build();
+
+        let selected_menu_text_style = MonoTextStyleBuilder::new()
+            .font(&FONT_6X10)
+            .text_color(BinaryColor::Off)
+            .background_color(BinaryColor::On)
             .build();
 
         let large_text_style = MonoTextStyleBuilder::new()
@@ -100,6 +115,7 @@ impl MenuController {
             user_data_sender: app_state_sender,
             display: RwLock::new(display),
             menu_text_style,
+            selected_menu_text_style,
             large_text_style,
             current_menu: RwLock::new(Some(MenuSelect::default().create_menu_item())),
             next_menu_signal: Signal::new(),
@@ -120,6 +136,7 @@ pub(super) mod internal {
     };
     use embassy_sync::{blocking_mutex::raw::NoopRawMutex, rwlock::RwLock};
     use embedded_graphics::{mono_font::MonoTextStyle, pixelcolor::BinaryColor};
+    use ssd1306::size::DisplaySize;
 
     #[allow(dead_code)]
     pub trait MenuControllerInternal {
@@ -130,6 +147,7 @@ pub(super) mod internal {
         fn app_state_sender(&self) -> &AppStateSender;
         fn app_state_receiver(&self) -> &RwLock<NoopRawMutex, AppStateReceiver>;
         fn menu_text_style(&self) -> MonoTextStyle<'static, BinaryColor>;
+        fn selected_menu_text_style(&self) -> MonoTextStyle<'static, BinaryColor>;
         fn large_text_style(&self) -> MonoTextStyle<'static, BinaryColor>;
         async fn handle_input(&'static self, input: InputEvent);
     }
@@ -159,6 +177,10 @@ impl internal::MenuControllerInternal for MenuController {
 
     fn menu_text_style(&self) -> MonoTextStyle<'static, BinaryColor> {
         self.menu_text_style
+    }
+
+    fn selected_menu_text_style(&self) -> MonoTextStyle<'static, BinaryColor> {
+        self.selected_menu_text_style
     }
 
     fn large_text_style(&self) -> MonoTextStyle<'static, BinaryColor> {
@@ -192,6 +214,13 @@ impl internal::MenuControllerInternal for MenuController {
 #[embassy_executor::task]
 async fn render_loop(controller: &'static MenuController) {
     loop {
+        if let Some(menu) = controller.next_menu_signal.try_take() {
+            let mut menu_w = controller.current_menu.write().await;
+            menu_w.replace(menu.create_menu_item());
+            drop(menu_w);
+            info!("Switched to menu: {:?}", menu);
+            controller.render().await;
+        }
         controller.render_signal.wait().await;
         controller.render().await;
     }
