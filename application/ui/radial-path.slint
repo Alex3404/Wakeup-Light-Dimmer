@@ -1,0 +1,64 @@
+// brightness_radial_slider.slint
+//
+// Radial (dial-style) slider bound to a `brightness` in-out property.
+// RadialSlider component itself is range-agnostic (min-value/max-value in properties).
+// HelloWorld window below instantiates it at 0.0-1.0 (ASSUMPTION, see note at HelloWorld).
+// Dial radius fixed at 20px per spec, exposed as an overridable `radius` property.
+//
+// Display-only — no TouchArea, no interaction. The dial position is entirely
+// driven by the `brightness` property; set it externally (via `<=>` binding
+// or from backend code) to update the arc/handle.
+//
+// --- Provenance of syntax used below ---
+// Verified (docs.slint.dev, retrieved 2026-08-22):
+//   - Path / MoveTo / ArcTo sub-element syntax and properties (radius-x, radius-y, sweep, large-arc)
+//   - Math.cos(angle) -> float, Math.sin(angle) -> float
+//   - float * 1deg -> angle conversion (documented idiom: `sin(slider.value * 1deg)`)
+// General technical knowledge (not re-verified via search, but core stable language
+//   features): `<=>` two-way property binding, `"\{expr}"` string interpolation,
+//   `round()`, `border-radius` on Rectangle, VerticalLayout/alignment.
+//
+// Design choice (not specified in the request — flagging as a decision, not a fact):
+// full 360° continuous sweep, dial start at top (-90°), no dead zone.
+
+export component RadialSlider inherits Rectangle {
+    in-out property <float> value: 50.0;      // bound value, min-value..max-value
+    in property <float> min-value: 0.0;
+    in property <float> max-value: 100.0;
+    in property <length> radius: 20px;              // dial radius — 20px per spec
+    in property <length> track-width: 3px;
+    in property <color> track-color: #ffffff;
+    in property <angle> start-angle: -90deg;
+    in property <angle> end-angle: 90deg;
+
+    private property <float> normalized: max(0.0, min(1.0,
+        (value - min-value) / (max-value - min-value)));
+    private property <angle> current-angle: (normalized * (end-angle - start-angle)) + start-angle;
+    private property <float> arc-r: 46.0; // coordinate units within the 100x100 Path viewbox
+
+    width: radius * 2;
+    height: radius * 2;
+
+    // Progress arc from top (-90deg), clockwise, to current value
+    Path {
+        width: 100%;
+        height: 100%;
+        viewbox-width: 100;
+        viewbox-height: 100;
+        stroke: root.track-color;
+        stroke-width: root.track-width;
+
+        MoveTo {
+            x: 50 + root.arc-r * Math.cos(root.start-angle);
+            y: 50 + root.arc-r * Math.sin(root.start-angle);
+        }
+        ArcTo {
+            radius-x: root.arc-r;
+            radius-y: root.arc-r;
+            x: 50 + root.arc-r * Math.cos(root.current-angle);
+            y: 50 + root.arc-r * Math.sin(root.current-angle);
+            sweep: true;
+            large-arc: root.normalized > 0.5;
+        }
+    }
+}

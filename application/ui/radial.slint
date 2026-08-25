@@ -1,0 +1,50 @@
+export component RadialSlider inherits Rectangle {
+    in-out property <float> value: 50.0;      // bound value, min-value..max-value
+    in property <float> min-value: 0.0;
+    in property <float> max-value: 100.0;
+    in property <length> radius: 20px;              // dial radius — 20px per spec
+    in property <length> handle-size: 8px;
+    in property <color> handle-color: #ffffff;
+    in property <length> track-width: 2px;
+    in property <color> track-color: #3a3a3a;
+    in property <angle> start-angle: -90deg;
+    in property <angle> end-angle: 90deg;
+
+    private property <float> normalized: max(0.0, min(1.0,
+        (value - min-value) / (max-value - min-value)));
+    private property <angle> current-angle: (normalized * (end-angle - start-angle)) + start-angle;
+
+    width: radius * 2;
+    height: radius * 2;
+
+    // Static ring track — plain Rectangle border, no Path/transform, safe
+    // on the software renderer.
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        border-radius: root.radius;
+        background: transparent;
+        border-width: root.track-width;
+        border-color: root.track-color;
+    }
+
+    // Black retangle hiding part of the ring for the unfilled portion of the dial.
+    Rectangle {
+        x: root.width / 2 + (root.radius) * Math.cos(root.start-angle);
+        y: root.height / 2 + (root.radius) * Math.sin(root.start-angle);
+        width: 100%; // self.x - Math.cos(root.end-angle) * root.radius
+        height: 100%; // self.y - Math.sin(root.end-angle) * root.radius
+        background: black; // or any color matching the background
+    }
+
+    // Handle dot — position only (no rotation, no Path), moves along the
+    // dial's circumference as `value` changes.
+    Rectangle {
+        width: root.handle-size;
+        height: root.handle-size;
+        border-radius: self.width / 2;
+        background: root.handle-color;
+        x: root.width / 2 + (root.radius) * Math.cos(root.current-angle) - self.width / 2;
+        y: root.height / 2 + (root.radius) * Math.sin(root.current-angle) - self.height / 2;
+    }
+}

@@ -1,0 +1,40 @@
+import { RadialSlider } from "radial.slint";
+
+export component HelloWorld inherits Window {
+    width: 128px;
+    height: 64px;
+    background: black;
+    in-out property <float> brightness: 100.0;    // ASSUMPTION: 0.0-100.0 scale, inferred from default 50.0
+    animate brightness {
+        duration: 200ms;
+        easing: linear;
+    }
+
+    VerticalLayout {
+        alignment: center;
+        HorizontalLayout {
+            alignment: center;
+            Text {
+                text: Math.round(root.brightness) + "%";
+                color: white;
+                font-size: 13px;
+            }
+        }
+    }
+
+    VerticalLayout {
+        alignment: center;
+        HorizontalLayout {
+            alignment: center;
+            RadialSlider {
+                start-angle: -270deg + 45deg;
+                end-angle: 90deg - 45deg;
+                value <=> root.brightness;
+                min-value: 0.0;
+                max-value: 100.0;
+                track-width: 1px;
+                radius: 28px;
+            }
+        }
+    }
+}

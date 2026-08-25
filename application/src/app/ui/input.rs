@@ -1,0 +1,103 @@
+use super::{MenuController, internal::MenuControllerInternal};
+use crate::drivers::rotery_decoder::RoteryInterface;
+
+use defmt::info;
+use embassy_executor::Spawner;
+use embassy_sync::channel::Channel;
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, signal::Signal};
+use embassy_time::{Duration, WithTimeout};
+use fixed::types::I24F8;
+use static_cell::StaticCell;
+
+static LONG_BUTTON_PRESS: Duration = Duration::from_millis(1000);
+
+pub enum InputEvent {
+    ButtonClick,
+    ButtonLongPress,
+    RotateClockwise(u16),        // Speed of rotation in ms since last event
+    RotateCounterClockwise(u16), // Speed of rotation in ms since last event
+}
+
+static MENU_CONTROLLER_INTERFACE: StaticCell<MenuControllerInterface> = StaticCell::new();
+
+/// RoteryInterface implementation that wraps MenuController
+pub struct MenuControllerInterface {
+    button_event: Signal<NoopRawMutex, bool>,
+    rotate_queue: Channel<NoopRawMutex, InputEvent, 5>,
+}
+
+impl MenuControllerInterface {
+    pub(super) fn new(menu: &'static MenuController, spawner: Spawner) -> &'static Self {
+        let interface = MENU_CONTROLLER_INTERFACE.init(Self {
+            button_event: Signal::new(),
+            rotate_queue: Channel::new(),
+        });
+
+        let token = input_queue_loop(menu, interface).expect("Failed to start input loop");
+        spawner.spawn(token);
+
+        let token = button_press_loop(menu, interface).expect("Failed to start button press loop");
+        spawner.spawn(token);
+
+        interface
+    }
+}
+
+impl RoteryInterface for MenuControllerInterface {
+    fn pressed(&self, pressed: bool) {
+        self.button_event.signal(pressed);
+    }
+
+    fn rotate_cw(&self, rpm : I24F8) {
+        let _ = self
+            .rotate_queue
+            .try_send(InputEvent::RotateClockwise(rpm.saturating_to_num()));
+    }
+
+    fn rotate_ccw(&self, rpm: I24F8) {
+        let _ = self
+            .rotate_queue
+            .try_send(InputEvent::RotateCounterClockwise(rpm.saturating_to_num()));
+    }
+}
+
+#[embassy_executor::task]
+async fn button_press_loop(
+    menu: &'static MenuController,
+    interface: &'static MenuControllerInterface,
+) {
+    loop {
+        let pressed = interface.button_event.wait().await;
+        if !pressed {
+            continue;
+        }
+
+        // Next, wait for the button to be released or a long press timeout
+        let result = interface
+            .button_event
+            .wait()
+            .with_timeout(LONG_BUTTON_PRESS)
+            .await;
+
+        // If the wait timed out, it means the button is still pressed, so we treat it as a long press
+        if result.is_err() {
+            menu.handle_input(InputEvent::ButtonLongPress).await;
+            info!("Button long press detected");
+        } else if result.is_ok_and(|pressed| !pressed) {
+            menu.handle_input(InputEvent::ButtonClick).await;
+            info!("Button click detected");
+        }
+    }
+}
+
+/// Task to handle rotation event inputs and pass them to the menu controller
+#[embassy_executor::task]
+async fn input_queue_loop(
+    menu: &'static MenuController,
+    interface: &'static MenuControllerInterface,
+) {
+    loop {
+        let input = interface.rotate_queue.receive().await;
+        menu.handle_input(input).await;
+    }
+}

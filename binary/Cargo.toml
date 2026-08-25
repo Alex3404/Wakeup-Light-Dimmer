@@ -1,0 +1,54 @@
+[package]
+edition      = "2024"
+name         = "esp32-dimmer"
+rust-version = "1.88"
+version      = "0.1.0"
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "binary"
+path = "./src/main.rs"
+
+[dependencies]
+esp-hal.workspace = true
+esp-rtos.workspace = true
+esp-bootloader-esp-idf.workspace = true
+embedded-io.workspace = true
+embedded-io-async.workspace = true
+esp-alloc.workspace = true
+panic-rtt-target.workspace = true
+rtt-target.workspace = true
+bt-hci.workspace = true
+embassy-executor.workspace = true
+embassy-time.workspace = true
+esp-radio.workspace = true
+smoltcp.workspace = true
+critical-section.workspace = true
+static_cell.workspace = true
+defmt.workspace = true
+esp-sync.workspace = true
+esp-storage.workspace = true
+embassy-time-driver.workspace = true
+embassy-futures.workspace = true
+embassy-sync.workspace = true
+embassy-embedded-hal.workspace = true
+embedded-graphics.workspace = true
+embedded-hal-async.workspace = true
+embedded-hal.workspace = true
+embedded-storage-async.workspace = true
+heapless.workspace = true
+libm.workspace = true
+postcard.workspace = true
+serde.workspace = true
+sequential-storage.workspace = true
+fixed.workspace = true
+enumset.workspace = true
+strum.workspace = true
+strum_macros.workspace = true
+ssd1306.workspace = true
+pcf85063a.workspace = true
+display-interface.workspace = true
+
+application = { path = "../application" }

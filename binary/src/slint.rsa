@@ -1,0 +1,242 @@
+// Copyright © SixtyFPS GmbH <info@slint.dev>
+// SPDX-License-Identifier: MIT
+
+use alloc::boxed::Box;
+use alloc::rc::Rc;
+use core::cell::RefCell;
+use embedded_hal::delay::DelayNs;
+use embedded_hal::digital::OutputPin;
+use embedded_hal_bus::spi::ExclusiveDevice;
+use esp_alloc as _;
+use esp_backtrace as _;
+use esp_hal::clock::CpuClock;
+use esp_hal::gpio::DriveMode;
+use esp_hal::time::Instant;
+use esp_hal::{
+    delay::Delay,
+    gpio::{Level, Output, OutputConfig},
+    i2c::master::I2c,
+    spi::Mode as SpiMode,
+    // init,
+    spi::master::{Config as SpiConfig, Spi},
+    time::Rate,
+};
+use esp_println::logger::init_logger_from_env;
+use gt911::Gt911Blocking;
+use log::{error, info, warn};
+use mipidsi::options::{ColorOrder, Orientation, Rotation};
+use slint::platform::PointerEventButton;
+use slint::platform::WindowEvent;
+use static_cell::StaticCell;
+
+use mcu_board_support::prelude
+
+esp_bootloader_esp_idf::esp_app_desc!();
+
+// type BoardDisplay = mipidsi::Display<
+//     mipidsi::interface::SpiInterface<
+//         'static,
+//         ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
+//         Output<'static>,
+//     >,
+//     mipidsi::models::ILI9342CRgb565,
+//     Output<'static>,
+// >;
+
+struct BoardState {
+    buffer_provider: DrawBuffer<'static, BoardDisplay>,
+    i2c: BoardI2c,
+
+    // Kept alive for the lifetime of the event loop.
+    // _backlight: Output<'static>,
+    // _int_pin: Output<'static>,
+}
+
+/// The backend for the Slint platform on the ESP board. It holds the window and the board state.
+struct EspBackend {
+    window: RefCell<Option<Rc<slint::platform::software_renderer::MinimalSoftwareWindow>>>,
+    state: RefCell<Option<BoardState>>,
+}
+
+impl slint::platform::Platform for EspBackend {
+    fn create_window_adapter(
+        &self,
+    ) -> Result<Rc<dyn slint::platform::WindowAdapter>, slint::PlatformError> {
+        let window = slint::platform::software_renderer::MinimalSoftwareWindow::new(
+            slint::platform::software_renderer::RepaintBufferType::ReusedBuffer,
+        );
+        
+        self.window.replace(Some(window.clone()));
+        Ok(window)
+    }
+
+    fn duration_since_start(&self) -> core::time::Duration {
+        core::time::Duration::from_millis(Instant::now().duration_since_epoch().as_millis())
+    }
+
+    fn run_event_loop(&self) -> Result<(), slint::PlatformError> {
+        // Run a embassy executor for this platform.
+        embassy_executor::raw::wake_task(task);
+        self.run_event_loop()
+    }
+}
+
+impl Default for EspBackend {
+    fn default() -> Self {
+        EspBackend { window: RefCell::new(None), state: RefCell::new(None) }
+    }
+}
+
+/// Initializes the heap, the board peripherals and sets the Slint platform.
+pub fn init() {
+
+    // Register the PSRAM heap before anything allocates. PSRAM is consumed here;
+    // every other peripheral is used field by field below, so the whole
+    // `Peripherals` struct is never stored and no `steal` is needed.
+    esp_alloc::psram_allocator!(
+        peripherals.PSRAM,
+        esp_hal::psram,
+        esp_hal::psram::PsramConfig {
+            mode: esp_hal::psram::PsramMode::OctalSpi,
+            ..Default::default()
+        }
+    );
+
+    let mut delay = Delay::new();
+
+    // Prepare a draw buffer for the Slint software renderer. The line buffer must
+    // outlive the platform, so it lives in a `StaticCell`.
+    static LINE_BUFFER: StaticCell<[slint::platform::software_renderer::Rgb565Pixel; 320]> =
+        StaticCell::new();
+        
+    let buffer_provider = DrawBuffer {
+        display,
+        buffer: LINE_BUFFER.init([slint::platform::software_renderer::Rgb565Pixel(0); 320]),
+    };
+
+    slint::platform::set_platform(Box::new(EspBackend {
+        window: RefCell::new(None),
+        state: RefCell::new(Some(BoardState {
+            buffer_provider,
+            i2c,
+        })),
+    }))
+    .expect("backend already initialized");
+}
+
+impl EspBackend {
+    fn window(&self) -> Result<Rc<dyn slint::platform::WindowAdapter>, slint::PlatformError> {
+        self.window.borrow().as_ref()
+            .cloned()
+            .ok_or(slint::PlatformError::Other("No window available".into()))
+    }
+
+    fn handle_input(&self) -> Result<(), slint::PlatformError> {
+        let window = self.window()?;
+
+        if let Some(window) = self.window.borrow().clone() {
+            // Poll the GT911 for touch data.
+            match touch.get_touch(&mut i2c) {
+                // Active touch detected: Some(point) means a press or move.
+                Ok(Some(point)) => {
+                    // Convert GT911 raw coordinates (assumed in pixels) into a PhysicalPosition.
+                    let pos = slint::PhysicalPosition::new(point.x as i32, point.y as i32)
+                        .to_logical(window.scale_factor());
+
+                    let event = if let Some(previous_pos) = last_touch.replace(pos) {
+                        // If the position changed, send a PointerMoved event.
+                        if previous_pos != pos {
+                            WindowEvent::PointerMoved { position: pos }
+                        } else {
+                            // If the position is unchanged, skip event generation.
+                            continue;
+                        }
+                    } else {
+                        // No previous touch recorded, generate a PointerPressed event.
+                        WindowEvent::PointerPressed {
+                            position: pos,
+                            button: PointerEventButton::Left,
+                        }
+                    };
+
+                    // Dispatch the event to Slint.
+                    window.dispatch_event_with_result(event)?;
+                }
+                // No active touch: if a previous touch existed, dispatch pointer release.
+                Ok(None) => {
+                    if let Some(pos) = last_touch.take() {
+                        window.dispatch_event_with_result(WindowEvent::PointerReleased {
+                            position: pos,
+                            button: PointerEventButton::Left,
+                        })?;
+                        window.dispatch_event_with_result(WindowEvent::PointerExited)?;
+                    }
+                }
+                // On errors, you can log them if desired.
+                Err(_) => {
+                    // Optionally log or ignore errors.
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn run_event_loop(&self) -> Result<(), slint::PlatformError> {
+        let BoardState { mut buffer_provider, mut i2c } =
+            self.state.borrow_mut().take().ok_or(slint::PlatformError::Other("Event loop already started".into()))?;
+
+        // Update the Slint window size from the display.
+        let size = slint::PhysicalSize::new(320, 240);
+        self.window()?.set_size(size);
+
+        // Main event loop.
+        loop {
+            let window = self.window()?;
+            slint::platform::update_timers_and_animations();
+            self.handle_input()?;
+
+            // Render the window if needed.
+            window.draw_if_needed(|renderer| {
+                renderer.render_by_line(&mut buffer_provider);
+            });
+        }
+    }
+}
+
+/// Provides a draw buffer for the MinimalSoftwareWindow renderer.
+struct DrawBuffer<'a, Display> {
+    display: Display,
+    buffer: &'a mut [slint::platform::software_renderer::Rgb565Pixel],
+}
+
+impl<
+    DI: mipidsi::interface::Interface<Word = u8>,
+    RST: OutputPin<Error = core::convert::Infallible>,
+> slint::platform::software_renderer::LineBufferProvider
+    for &mut DrawBuffer<'_, mipidsi::Display<DI, mipidsi::models::ILI9342CRgb565, RST>>
+{
+    type TargetPixel = slint::platform::software_renderer::Rgb565Pixel;
+
+    fn process_line(
+        &mut self,
+        line: usize,
+        range: core::ops::Range<usize>,
+        render_fn: impl FnOnce(&mut [slint::platform::software_renderer::Rgb565Pixel]),
+    ) {
+        let buffer = &mut self.buffer[range.clone()];
+        render_fn(buffer);
+
+        // Update the display with the rendered line.
+        self.display
+            .set_pixels(
+                range.start as u16,
+                line as u16,
+                range.end as u16,
+                line as u16,
+                buffer
+                    .iter()
+                    .map(|x| embedded_graphics_core::pixelcolor::raw::RawU16::new(x.0).into()),
+            )
+            .unwrap();
+    }
+}

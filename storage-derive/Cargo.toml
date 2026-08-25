@@ -1,0 +1,12 @@
+[package]
+name = "storage-derive"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "3.0.3", features = ["full"] }
+quote = "1"
+darling = "0.24.1"

@@ -1,0 +1,75 @@
+[package]
+edition      = "2024"
+name         = "application"
+rust-version = "1.88"
+version      = "0.1.0"
+
+[lints]
+workspace = true
+
+[lib]
+name = "application"
+path = "./src/lib.rs"
+
+[dependencies]
+esp-hal.workspace = true
+esp-bootloader-esp-idf.workspace = true
+embedded-io.workspace = true
+embedded-io-async.workspace = true
+esp-alloc.workspace = true
+bt-hci.workspace = true
+embassy-executor.workspace = true
+embassy-time.workspace = true
+esp-radio.workspace = true
+smoltcp.workspace = true
+critical-section.workspace = true
+static_cell.workspace = true
+defmt.workspace = true
+esp-sync.workspace = true
+esp-storage.workspace = true
+embassy-time-driver.workspace = true
+embassy-futures.workspace = true
+embassy-sync.workspace = true
+embassy-embedded-hal.workspace = true
+embedded-graphics.workspace = true
+embedded-hal-async.workspace = true
+embedded-hal.workspace = true
+embedded-storage-async.workspace = true
+heapless.workspace = true
+libm.workspace = true
+postcard.workspace = true
+serde.workspace = true
+sequential-storage.workspace = true
+fixed.workspace = true
+enumset.workspace = true
+strum.workspace = true
+strum_macros.workspace = true
+ssd1306.workspace = true
+pcf85063a.workspace = true
+display-interface.workspace = true
+
+#--------------------#
+# Slint dependencies #
+#--------------------#
+i-slint-core.workspace = true
+i-slint-renderer-software.workspace = true
+slint.workspace = true
+
+storage-derive = { path = "../storage-derive"}
+
+[build-dependencies]
+slint-build.workspace = true
+
+#--------------------#
+
+# For fine tuning these settings, please refer to https://doc.rust-lang.org/cargo/reference/profiles.html
+[profile.dev]
+# The default debug profile is too slow and too big for resource-constrained devices.
+# Always build with some optimizations enabled.
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1     # LLVM can perform better optimizations using a single thread
+debug         = 2     # prefer slower builds but better debugging experience
+lto           = 'fat'
+opt-level     = 's'
