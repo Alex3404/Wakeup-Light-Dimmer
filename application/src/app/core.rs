@@ -121,6 +121,13 @@ pub struct App {
 }
 
 impl App {
+    /// The main entry point for the application core.
+    /// 
+    /// Args
+    /// - `spawner`: The RTOS task spawner.
+    /// - `peripherals`: The application peripherals.
+    ///
+    /// This function never returns.
     pub async fn main(spawner: Spawner, peripherals: AppPeripherals) -> ! {
         defmt::info!("App main task started!");
         
@@ -228,17 +235,20 @@ impl App {
         });
         defmt::info!("App Created!");
 
-        // Spawn the reactive storage task if it exists
-        if let Some(react_store) = reactive_app_storage {
-            spawner.spawn(run_reactive_storage(react_store).unwrap());
-        }
+        let bg_tasks = BackgroundTasks {
+            rotery_decoder,
+            test_led: peripherals.test_led,
+            reactive_app_storage,
+        };
 
-        spawner.spawn(rotery_task(rotery_decoder).unwrap());
-
-        spawner.spawn(blink_led(peripherals.test_led).unwrap());
-
-        app.app_loop().await;
+        app.app_loop(bg_tasks).await;
     }
+}
+
+pub struct BackgroundTasks {
+    rotery_decoder : RoteryDecoder<'static, Dimmer>,
+    test_led : Output<'static>,
+    reactive_app_storage: Option<ReactiveAppStorage>,
 }
 
 #[embassy_executor::task]
@@ -247,7 +257,17 @@ async fn rotery_task(mut rotery_decoder: RoteryDecoder<'static, Dimmer>) {
 }
 
 impl App {
-    async fn app_loop(&'static mut self) -> ! {
+    /// Main application loop that handles state changes and spawns background tasks.
+    async fn app_loop(&'static mut self, bg_tasks: BackgroundTasks) -> ! {
+        /// Spawns the background tasks for the application!
+        self.spawner.spawn(rotery_task(bg_tasks.rotery_decoder).unwrap());
+        self.spawner.spawn(blink_led(bg_tasks.test_led).unwrap());
+
+        // Spawn the reactive storage task if it exists
+        if let Some(reactive_app_storage) = bg_tasks.reactive_app_storage {
+            self.spawner.spawn(run_reactive_storage(reactive_app_storage).unwrap());
+        }
+
         loop {
             // Wait for changes in the app state
             let new_state = self.state_receiver.changed().await;

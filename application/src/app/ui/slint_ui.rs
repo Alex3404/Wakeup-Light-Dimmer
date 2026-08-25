@@ -1,19 +1,21 @@
 extern crate alloc;
 use alloc::rc::Rc;
 use alloc::boxed::Box;
+use alloc::sync::Arc;
+
 use embassy_executor::Spawner;
 use embedded_graphics::{draw_target::DrawTarget, geometry::{Point, Size}, pixelcolor::{BinaryColor}, primitives::Rectangle};
 use slint::{ComponentHandle, PlatformError, platform::SetPlatformError};
 use core::ops::Mul;
 
 use embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice;
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, signal::Signal};
 use embassy_time::{Duration, Instant, Timer};
 use esp_hal::Async;
 use ssd1306::{Ssd1306Async, mode::{BufferedGraphicsModeAsync, DisplayConfigAsync}, prelude::I2CInterface, rotation::DisplayRotation, size::{DisplaySize128x64, DisplaySizeAsync}};
 use display_interface::DisplayError;
 
-use crate::app::{core::AppStateReceiver};
+use crate::app::{core::AppStateReceiver, ui::slint_ui::UIError::DisplayFlushError};
 
 pub type I2c =
     I2cDevice<'static, NoopRawMutex, esp_hal::i2c::master::I2c<'static, Async>>;
@@ -23,11 +25,12 @@ pub type Display = Ssd1306Async<Interface, DisplaySize, BufferedGraphicsModeAsyn
 
 type SlintBuffer = [slint::Rgb8Pixel; DisplaySize::HEIGHT as usize * DisplaySize::WIDTH as usize ];
 
+/// The DimmerUI struct represents the user interface for the dimmer application, 
+/// managing the display, line buffer, Slint software window, and the RTOS task spawner.
 pub struct DimmerUI {
     display : Display,
     line_buffer : SlintBuffer,
     window : Rc<slint::platform::software_renderer::MinimalSoftwareWindow>,
-    spawner: Spawner,
 }
 
 #[derive(Debug)]
@@ -40,6 +43,19 @@ pub enum UIError {
 
 
 impl DimmerUI {
+
+    /// Create a new instance of the DimmerUI.
+    /// 
+    /// Args
+    /// - `spawner`: The RTOS task spawner.
+    /// - `i2c`: The I2C interface for the display.
+    /// - `app_state`: The application state receiver.
+    ///
+    /// Returns
+    /// - `Ok(Self)`: The newly created DimmerUI instance.
+    /// - `Err(UIError)`: If there was an error initializing the display or the Slint platform.
+    /// 
+    /// Initializes the DimmerUI, setting up the display and the Slint platform.
     pub async fn new(spawner: Spawner, i2c: I2c, app_state: AppStateReceiver) -> Result<Self, UIError> {
         let interface = ssd1306::I2CDisplayInterface::new(i2c);
         let mut display = Ssd1306Async::new(
@@ -90,23 +106,39 @@ impl DimmerUI {
             display: display,
             line_buffer: buffer,
             window,
-            spawner,
         })
     }
 
-    pub async fn run(mut self) -> Result<(), UIError> {
+    /// Runs the main event loop for the DimmerUI, handling rendering and animations.
+    /// This function will continuously update the display and process Slint events.
+    /// 
+    /// Returns
+    /// - `Err(UIError)`: If there is an error during rendering or display flushing.
+    pub async fn run(mut self) -> Result<!, UIError> {
+        // Create a signal to capture any drawing errors asynchronously,
+        // and out of the context window of draw_async_if_needed.
+        let draw_error_signal : Arc<Signal<NoopRawMutex, UIError>> = Arc::new(Signal::new());
+
         loop {
             // Update timers and animations for the Slint platform.
             slint::platform::update_timers_and_animations();
             
+            if let Some(err) = draw_error_signal.try_take() {
+                return Err(err);
+            }
+
             // Render the window if needed.
             self.window.draw_async_if_needed(async |renderer : &i_slint_renderer_software::SoftwareRenderer| {
+                // Invoke line renderer for software render
                 renderer.render_by_line(DisplayWrapper {
                     display: &mut self.display,
                     line_buffer: &mut self.line_buffer,
                 });
-
-                self.display.flush().await.map_err(|e| UIError::DisplayFlushError(e));
+                
+                // If flushing the display fails, signal the error asynchronously.
+                if let Err(err) = self.display.flush().await {
+                    draw_error_signal.signal(DisplayFlushError(err));
+                };
             }).await;
 
             // If we have no active animations, wait until the next timer update
