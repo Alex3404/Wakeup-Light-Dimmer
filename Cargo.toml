@@ -103,7 +103,7 @@ pcf85063a = "0.1.1"
 #----------------#
 
 critical-section = "1.2.0"
-static_cell = "2.1.1"
+static_cell = { version = "2.1.1", features = ["nightly"] }
 fixed = { version = "=1.20.0", features = ["serde", "num-traits"] }
 enumset = "1.1.14"
 modular-bitfield = "0.13.1"

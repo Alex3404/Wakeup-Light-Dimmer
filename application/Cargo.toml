@@ -59,6 +59,7 @@ storage-derive = { path = "../storage-derive"}
 
 [build-dependencies]
 slint-build.workspace = true
+dotenv-build = "0.1"
 
 #--------------------#
 

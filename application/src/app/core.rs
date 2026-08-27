@@ -1,3 +1,5 @@
+extern crate alloc;
+
 use core::cell::RefCell;
 
 use crate::app::ui::slint_ui::DimmerUI;
@@ -15,6 +17,7 @@ use embassy_embedded_hal::adapter::BlockingAsync;
 use embassy_futures::yield_now;
 use embassy_time::Duration;
 use esp_hal::gpio::Output;
+use esp_radio::wifi::ControllerConfig;
 use esp_storage::{FlashStorage};
 use fixed::traits::{Fixed, FromFixed};
 use fixed::types::{I24F8, U0F16, U16F16};
@@ -25,16 +28,10 @@ use bt_hci::controller::ExternalController;
 use esp_hal::{mcpwm::AnyMcPwm};
 use esp_radio::{ble::controller::{BleConnector}, wifi::Interfaces};
 use sequential_storage::cache::{Cache, Uncached};
-use static_cell::StaticCell;
-
 use embassy_executor::Spawner;
 
-// Provides a static reference to the app instance
-static APP_CELL: StaticCell<App> = StaticCell::new();
-
-// App state watcher static and helper types
+// App state watcher helper types
 const APP_STATE_WATCH_SIZE: usize = 6;
-static APP_STATE_WATCH: StaticCell<AppStateWatch> = StaticCell::new();
 pub type AppStateWatch = Watch<NoopRawMutex, AppState, APP_STATE_WATCH_SIZE>;
 pub type AppStateReceiver = Receiver<'static, NoopRawMutex, AppState, APP_STATE_WATCH_SIZE>;
 pub type AppStateSender = Sender<'static, NoopRawMutex, AppState, APP_STATE_WATCH_SIZE>;
@@ -132,7 +129,12 @@ impl App {
         defmt::info!("App main task started!");
         
         // Initialize WiFi controller
-        let (_wifi_controller, _wifi_interfaces) = Self::init_wifi(peripherals.wifi);
+        let (mut _wifi_controller, _wifi_interfaces) = Self::init_wifi(peripherals.wifi);
+
+        if let Some(mut _wifi_controller) = _wifi_controller {
+            defmt::info!("WiFi controller initialized successfully.");
+            _wifi_controller.connect_async().await;
+        }
 
         // Start up bluetooth controller
         let _bluetooth_controller = Self::init_bluetooth(peripherals.bluetooth);
@@ -184,24 +186,12 @@ impl App {
             defmt::info!("Dimmer initialized!");
             BasicDimmer::new(dimmer, DimmerConfig::default())
         });
-    
-        // Create menu controller
-        // let menu_controller = MenuController::initalize(
-        //     spawner,
-        //     peripherals.i2c_device.clone(),
-        //     app_state_watch.receiver().expect("Increase receiver count!"),
-        //     app_state_watch.sender(),
-        // ).await;
-        defmt::info!("Menu controller initialized!");
 
         // Initialize the RTC clock
         let _rtc_clock = PCF85063::new(peripherals.i2c_device.clone());
 
         // Create rotery interface and decoder
-        // let rotery_interface = menu_controller.create_rotery_interface(spawner.clone());
-
-        static ROTERY_DIMMER: StaticCell<Dimmer> = StaticCell::new();
-        let rotery_dimmer = ROTERY_DIMMER.init(Dimmer {
+        let rotery_dimmer = static_cell::make_static!(Dimmer {
                 app_state_sender: app_state_watch.sender(),
             });
 
@@ -212,7 +202,10 @@ impl App {
         let rotery_decoder = RoteryDecoder::new(rotery_config);
         defmt::info!("Rotery decoder initialized!");
 
-        let ui = DimmerUI::new(spawner, peripherals.i2c_device.clone(), app_state_watch.receiver().expect("Increase receiver count!")).await;
+        let ui = DimmerUI::new(spawner,
+            peripherals.i2c_device.clone(),
+            app_state_watch.receiver().expect("Increase receiver count!")
+        ).await;
 
         match ui {
             Ok(ui) => {
@@ -224,7 +217,7 @@ impl App {
             }
         }
 
-        let app = APP_CELL.init_with(|| App {
+        let app : &'static mut App = static_cell::make_static!(App {
             spawner,
             // rotery_decoder,
             // menu_controller,
@@ -233,6 +226,7 @@ impl App {
             app_storage: RefCell::new(app_storage),
             main_dimmer: RefCell::new(main_dimmer),
         });
+
         defmt::info!("App Created!");
 
         let bg_tasks = BackgroundTasks {
@@ -283,6 +277,9 @@ impl App {
     }
 }
 
+static SSID : &'static str = env!("WIFI_SSID");
+static PASSWORD : &'static str = env!("WIFI_PASSWORD");
+
 //============================//
 // Application Initialization //
 //============================//
@@ -313,21 +310,24 @@ impl App {
         };
 
         // App state storage
-        let app_state_watch = match APP_STATE_WATCH.try_init_with(Watch::new) {
-            Some(watch) => watch,
-            None => {
-                panic!("App state watch already initialized!");
-            },
-        };
-
-        // Initialize the app state watch with the current app state
-        app_state_watch.sender().send(app_state);
-
+        let app_state_watch : &'static AppStateWatch = static_cell::make_static!(Watch::new_with(app_state));
         app_state_watch
     }
 
     /// Initialize the WiFi module with the given peripheral.
     fn init_wifi<'a>(wifi: esp_hal::peripherals::WIFI<'a>) -> (Option<WifiControl<'a>>, Option<Interfaces<'a>>) {
+        use esp_radio::wifi::{Config, AuthenticationMethod};
+        use esp_radio::wifi::sta::StationConfig;
+
+        let station_config = Config::Station(
+            StationConfig::default()
+                .with_ssid(alloc::string::String::from(SSID))
+                .with_auth_method(AuthenticationMethod::Wpa2Personal)
+                .with_password(alloc::string::String::from(PASSWORD))
+        );
+
+        let controller_config = ControllerConfig::default();
+
         match esp_radio::wifi::new(wifi, Default::default()) {
             Ok((ctrl, ifaces)) => {
                 defmt::info!("WiFi initialized successfully");

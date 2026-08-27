@@ -4,7 +4,11 @@ fn main() {
     println!("cargo:rustc-link-arg=-Tdefmt.x");
     // make sure linkall.x is the last linker script (otherwise might cause problems with flip-link)
     println!("cargo:rustc-link-arg=-Tlinkall.x");
-  
+    
+    // Load environment variables from the .env file
+    dotenv_build::output(dotenv_build::Config::default()).unwrap();
+
+    // Compile Slint
     slint_build::compile_with_config(
         "ui/main.slint",
         slint_build::CompilerConfiguration::new()
