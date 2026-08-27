@@ -1,0 +1,737 @@
+(kicad_sch
+	(version 20260306)
+	(generator "eeschema")
+	(generator_version "10.0")
+	(uuid "4f534441-d266-420e-bb1d-80af24425a59")
+	(paper "A5")
+	(lib_symbols
+		(symbol "PUSB3AB4Z_1"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "D3"
+				(at 16.51 7.62 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "PUSB3AB4Z"
+				(at 16.51 5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Samacsys:SON50P100X250X50-10N"
+				(at 16.51 22.86 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/PUSB3AB4.pdf"
+				(at 16.51 20.32 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "PUSB3AB4 - ESD protection for ultra high-speed interfaces"
+				(at 16.51 17.78 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Height" "0.5"
+				(at 16.51 15.24 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Mouser Part Number" "771-PUSB3AB4Z"
+				(at 16.51 12.7 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Mouser Price/Stock" "https://www.mouser.co.uk/ProductDetail/Nexperia/PUSB3AB4Z?qs=sPdA%252BpIfi%2F%252BQqDUUBPFV5w%3D%3D"
+				(at 16.51 10.16 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Manufacturer_Name" "Nexperia"
+				(at 16.51 7.62 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Manufacturer_Part_Number" "PUSB3AB4Z"
+				(at 16.51 5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Digikey-Part" "1727-2741-1-ND"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "PUSB3AB4Z_1_1_1"
+				(rectangle
+					(start 10.16 2.54)
+					(end 22.86 -7.62)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(pin passive line
+					(at 5.08 0 0)
+					(length 5.08)
+					(name "CH1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 5.08 -2.54 0)
+					(length 5.08)
+					(name "CH2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 16.51 -12.7 90)
+					(length 5.08)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 27.94 -2.54 180)
+					(length 5.08)
+					(name "CH3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 27.94 0 180)
+					(length 5.08)
+					(name "CH4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at 22.86 -8.89 180)
+					(length 5.08)
+					(hide yes)
+					(name "N.C._1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at 22.86 -6.35 180)
+					(length 5.08)
+					(hide yes)
+					(name "N.C._2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 16.51 -12.7 90)
+					(length 5.08)
+					(hide yes)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at 22.86 -3.81 180)
+					(length 5.08)
+					(hide yes)
+					(name "N.C._3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "9"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at 22.86 -1.27 180)
+					(length 5.08)
+					(hide yes)
+					(name "N.C._4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "10"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+	)
+	(junction
+		(at 83.82 50.8)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "210e63a6-5ff5-457b-8cc9-12cf69de8c7b")
+	)
+	(junction
+		(at 83.82 53.34)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "5ccd7468-e05c-49fc-aec7-e98dbe167122")
+	)
+	(junction
+		(at 60.96 53.34)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "9f9f870e-1523-4a4e-9ede-5948a50c9689")
+	)
+	(junction
+		(at 60.96 50.8)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "a9b88dd0-5b7c-456e-bb80-d32975a419be")
+	)
+	(wire
+		(pts
+			(xy 60.96 53.34) (xy 57.15 53.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0e294c38-5285-4fe5-be6d-8303e4e114a2")
+	)
+	(wire
+		(pts
+			(xy 60.96 53.34) (xy 60.96 57.15)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "117f9ae7-2ea9-4c0c-b0ef-3ec77a26edc2")
+	)
+	(wire
+		(pts
+			(xy 83.82 53.34) (xy 87.63 53.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1451d72b-db5b-437e-b51a-808ed408a6b7")
+	)
+	(wire
+		(pts
+			(xy 83.82 50.8) (xy 83.82 46.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "230e0672-7362-4616-92a8-5983f635c338")
+	)
+	(wire
+		(pts
+			(xy 60.96 46.99) (xy 60.96 50.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7ceb53f6-747c-45fd-8734-95b317189172")
+	)
+	(wire
+		(pts
+			(xy 83.82 50.8) (xy 87.63 50.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "babe0d2b-d3e4-43ad-a79e-820c86763317")
+	)
+	(wire
+		(pts
+			(xy 83.82 53.34) (xy 83.82 57.15)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bc9a3d3e-e202-4e86-972e-60b030c096b0")
+	)
+	(wire
+		(pts
+			(xy 60.96 50.8) (xy 57.15 50.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e295d76e-f82b-4b47-8833-bc1cca052e3d")
+	)
+	(hierarchical_label "GND"
+		(shape output)
+		(at 72.39 63.5 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "03983a30-7457-4c3d-a478-3f58a45c0b71")
+	)
+	(hierarchical_label "OUT_3"
+		(shape output)
+		(at 87.63 53.34 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "273ad5f0-47be-4bb2-934b-4267fee31074")
+	)
+	(hierarchical_label "IN_1"
+		(shape input)
+		(at 60.96 46.99 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "3ca4aa62-a4ec-40e9-8211-37814f5d8dfc")
+	)
+	(hierarchical_label "IN_3"
+		(shape input)
+		(at 83.82 57.15 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "62e877ad-5aaa-4578-903e-07bc68c29cd5")
+	)
+	(hierarchical_label "OUT_2"
+		(shape output)
+		(at 57.15 53.34 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "92b062b5-1f53-4d03-bb07-ae1bcad15918")
+	)
+	(hierarchical_label "IN_4"
+		(shape input)
+		(at 83.82 46.99 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "aa5796b1-f348-4d56-b275-14a79d8dbbf8")
+	)
+	(hierarchical_label "IN_2"
+		(shape input)
+		(at 60.96 57.15 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "eafb5271-b241-4e70-80b8-4d1504d050ee")
+	)
+	(hierarchical_label "OUT_1"
+		(shape output)
+		(at 57.15 50.8 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "faad9a76-6cc4-4e54-b5eb-cf4f7a5cca7b")
+	)
+	(hierarchical_label "OUT_4"
+		(shape output)
+		(at 87.63 50.8 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "fd96691b-8188-47e4-8cd5-d2079533f519")
+	)
+	(symbol
+		(lib_name "PUSB3AB4Z_1")
+		(lib_id "Samacsys:PUSB3AB4Z")
+		(at 55.88 50.8 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "94ffbe51-07ca-4b7d-92a9-e43360ddef29")
+		(property "Reference" "D4"
+			(at 71.374 43.942 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "PUSB3AB4Z"
+			(at 71.374 46.482 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Samacsys:SON50P100X250X50-10N"
+			(at 72.39 27.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/PUSB3AB4.pdf"
+			(at 72.39 30.48 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "PUSB3AB4 - ESD protection for ultra high-speed interfaces"
+			(at 72.39 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Height" "0.5"
+			(at 72.39 35.56 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" "771-PUSB3AB4Z"
+			(at 72.39 38.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" "https://www.mouser.co.uk/ProductDetail/Nexperia/PUSB3AB4Z?qs=sPdA%252BpIfi%2F%252BQqDUUBPFV5w%3D%3D"
+			(at 72.39 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_Name" "Nexperia"
+			(at 72.39 43.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_Part_Number" "PUSB3AB4Z"
+			(at 72.39 45.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "1727-2741-1-ND"
+			(at 55.88 50.8 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 55.88 50.8 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 55.88 50.8 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "3"
+			(uuid "ad548ed2-1348-46e4-8e01-cf5d9515a93c")
+		)
+		(pin "7"
+			(uuid "229fd774-d97e-4118-afab-52a927016943")
+		)
+		(pin "10"
+			(uuid "0ce48637-f17b-4d8d-a53d-99e8f92de3c5")
+		)
+		(pin "4"
+			(uuid "b4c10ae6-d6ec-4a0f-afbf-de0c734808bb")
+		)
+		(pin "2"
+			(uuid "d210001c-0fb1-4af0-b485-9b51cc267e96")
+		)
+		(pin "8"
+			(uuid "6047bb83-a9ff-43bc-90dd-8711e15f61d8")
+		)
+		(pin "6"
+			(uuid "80cabb7e-7e32-401c-aee6-01452dc24de5")
+		)
+		(pin "1"
+			(uuid "fa8464b6-af3f-4ad7-b900-a75ef7f6f6f5")
+		)
+		(pin "5"
+			(uuid "be14b3f1-3db0-47d4-99c5-d7a9fa2d4bc8")
+		)
+		(pin "9"
+			(uuid "fb81aa0d-4182-4a04-9b72-b7109d03cc18")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/3b95fbf1-cc5c-48b7-b417-0d124bf9a90b"
+					(reference "D6")
+					(unit 1)
+				)
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/bf1aa9c2-defb-449c-bee4-fabf1bcd2ede"
+					(reference "D4")
+					(unit 1)
+				)
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/bfac05a2-e61a-4ec2-b32e-2b84b510e97b"
+					(reference "D5")
+					(unit 1)
+				)
+			)
+		)
+	)
+)

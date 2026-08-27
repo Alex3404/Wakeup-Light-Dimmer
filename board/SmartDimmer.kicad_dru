@@ -1,0 +1,7 @@
+(version 1)
+
+(rule "Ignore annular width for vias"
+    (severity ignore)
+    (constraint annular_width)
+    (condition "A.Type == 'Via'")
+)

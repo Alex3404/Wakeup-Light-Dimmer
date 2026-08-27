@@ -1,0 +1,1655 @@
+(kicad_sch
+	(version 20260306)
+	(generator "eeschema")
+	(generator_version "10.0")
+	(uuid "e88a5686-2b8c-4eac-8783-ed2166c0fc89")
+	(paper "A5")
+	(lib_symbols
+		(symbol "Device:C_Small"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0.254)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "C"
+				(at 0.254 1.778 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Value" "C_Small"
+				(at 0.254 -2.032 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Unpolarized capacitor, small symbol"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "capacitor cap"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "C_*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "C_Small_0_1"
+				(polyline
+					(pts
+						(xy -1.524 0.508) (xy 1.524 0.508)
+					)
+					(stroke
+						(width 0.3048)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -1.524 -0.508) (xy 1.524 -0.508)
+					)
+					(stroke
+						(width 0.3302)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "C_Small_1_1"
+				(pin passive line
+					(at 0 2.54 270)
+					(length 2.032)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 0 -2.54 90)
+					(length 2.032)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "Snapeda:R05C1TF05S-R"
+			(pin_names
+				(offset 1.016)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "PS"
+				(at 0 8.636 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "Value" "R05C1TF05S-R"
+				(at 0 6.35 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "Footprint" "Snapeda:CONV_R05C1TF05S-R"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "1W DC/DC-Converter 'ECONOLINE' SMD 3kV reg"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "MF" "Recom Power"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "MAXIMUM_PACKAGE_HEIGHT" "1.28mm"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "Package" "None"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "Price" "None"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "Check_prices" "https://www.snapeda.com/parts/R05C1TF05S-R/Recom+Power/view-part/?ref=eda"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "STANDARD" "Manufacturer Recommendations"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "PARTREV" "PRELIMINARY"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "SnapEDA_Link" "https://www.snapeda.com/parts/R05C1TF05S-R/Recom+Power/view-part/?ref=snap"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "MP" "R05C1TF05S-R"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "Purchase-URL" "https://www.snapeda.com/api/url_track_click_mouser/?unipart_id=15824146&manufacturer=Recom Power&part_name=R05C1TF05S-R&search_term=None"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "Availability" "In Stock"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "MANUFACTURER" "Recom Power"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(symbol "R05C1TF05S-R_0_0"
+				(rectangle
+					(start -7.62 5.08)
+					(end 7.62 -5.08)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(pin power_in line
+					(at -12.7 -2.54 0)
+					(length 5.08)
+					(hide yes)
+					(name "VIN-"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "2_3"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -12.7 0 0)
+					(length 5.08)
+					(name "CTRL"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 12.7 0 180)
+					(length 5.08)
+					(name "VSEL"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin power_out line
+					(at 12.7 -2.54 180)
+					(length 5.08)
+					(hide yes)
+					(name "VOUT-"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "12"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+			)
+			(symbol "R05C1TF05S-R_1_0"
+				(pin power_in line
+					(at -12.7 -2.54 0)
+					(length 5.08)
+					(name "VIN-"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at -12.7 2.54 0)
+					(length 5.08)
+					(name "VIN+"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "4_5"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin power_out line
+					(at 12.7 2.54 180)
+					(length 5.08)
+					(name "VOUT+"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "8_9"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin power_out line
+					(at 12.7 -2.54 180)
+					(length 5.08)
+					(name "VOUT-"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "10_11"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+	)
+	(junction
+		(at 91.44 29.21)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "00cf2847-a6c3-4df7-a392-62de070d927b")
+	)
+	(junction
+		(at 53.34 30.48)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "5bfc84ac-a233-4b6b-a10e-e6dd5f34611b")
+	)
+	(junction
+		(at 43.18 36.83)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "66df436e-6767-446b-ba88-10f312a4022c")
+	)
+	(junction
+		(at 81.28 30.48)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "8b219342-f657-4f52-8fe7-959176f3df2d")
+	)
+	(junction
+		(at 43.18 29.21)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "b9a6927d-3491-48c0-a283-ea624e31d8ff")
+	)
+	(junction
+		(at 91.44 36.83)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "fa3914be-9eac-4038-b1be-b9893649db0b")
+	)
+	(wire
+		(pts
+			(xy 43.18 36.83) (xy 53.34 36.83)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "001aa893-bcc3-4e03-bb27-ec9eb7d0bb67")
+	)
+	(wire
+		(pts
+			(xy 91.44 29.21) (xy 91.44 30.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "02aba73f-699c-46b0-bc27-909075df47e6")
+	)
+	(wire
+		(pts
+			(xy 81.28 33.02) (xy 80.01 33.02)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "156c49e3-0402-41d1-9d21-52f4fec40284")
+	)
+	(wire
+		(pts
+			(xy 81.28 29.21) (xy 81.28 30.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "18aef70c-9abe-4e22-be34-1cc460c33a45")
+	)
+	(wire
+		(pts
+			(xy 91.44 29.21) (xy 101.6 29.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "47b6a110-1747-4895-91c2-76ba5ed4d07d")
+	)
+	(wire
+		(pts
+			(xy 101.6 29.21) (xy 101.6 30.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "49acba3e-7a7f-434c-af19-4d3d7180e433")
+	)
+	(wire
+		(pts
+			(xy 54.61 30.48) (xy 53.34 30.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "55a94685-6c81-4a70-8d50-a7254035b68a")
+	)
+	(wire
+		(pts
+			(xy 81.28 29.21) (xy 91.44 29.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "55eaa1b9-bd74-46b1-9431-f44cf3c7eb00")
+	)
+	(wire
+		(pts
+			(xy 53.34 30.48) (xy 53.34 33.02)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "68119cc7-d652-40d8-95ec-43762e021fc6")
+	)
+	(wire
+		(pts
+			(xy 81.28 30.48) (xy 80.01 30.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8028bc48-6730-4e8d-b13f-147eac374647")
+	)
+	(wire
+		(pts
+			(xy 33.02 36.83) (xy 43.18 36.83)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "960875b9-4ea4-47c5-af7d-4ebb04cb3303")
+	)
+	(wire
+		(pts
+			(xy 81.28 30.48) (xy 81.28 33.02)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "987c6847-78ad-42ed-9433-bf81fef339b9")
+	)
+	(wire
+		(pts
+			(xy 80.01 35.56) (xy 81.28 35.56)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9be6893a-3a2e-4ebf-a8f6-ed5ed3a628b0")
+	)
+	(wire
+		(pts
+			(xy 81.28 36.83) (xy 91.44 36.83)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a03e438d-aa92-4e43-b388-2ededfe2819d")
+	)
+	(wire
+		(pts
+			(xy 53.34 30.48) (xy 53.34 29.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a428c632-a21e-4d02-a3cd-24eca8e4b3fb")
+	)
+	(wire
+		(pts
+			(xy 53.34 36.83) (xy 53.34 35.56)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a783e0a3-f68b-4d1a-878b-f00e56179e32")
+	)
+	(wire
+		(pts
+			(xy 43.18 29.21) (xy 43.18 30.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bdaa54c7-b07a-4040-b12e-402f14e2d349")
+	)
+	(wire
+		(pts
+			(xy 53.34 35.56) (xy 54.61 35.56)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bebe590a-60f4-4f08-9723-7d5cb9fbdd91")
+	)
+	(wire
+		(pts
+			(xy 43.18 29.21) (xy 53.34 29.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d0492461-2679-4b52-8ce1-1581b6143785")
+	)
+	(wire
+		(pts
+			(xy 91.44 35.56) (xy 91.44 36.83)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e71a529a-688c-43cd-9d1d-86d4b1879bf7")
+	)
+	(wire
+		(pts
+			(xy 33.02 29.21) (xy 43.18 29.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ece608cc-ec67-4840-9d1c-4a69f7e93657")
+	)
+	(wire
+		(pts
+			(xy 33.02 29.21) (xy 33.02 30.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ed3b602f-e922-4d89-b214-69671adb86ff")
+	)
+	(wire
+		(pts
+			(xy 101.6 35.56) (xy 101.6 36.83)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "eed5d436-4af7-4c1f-9f16-2bba84277f27")
+	)
+	(wire
+		(pts
+			(xy 91.44 36.83) (xy 101.6 36.83)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f2d6cde9-1dd4-4913-bb2a-9a82d2c40ec2")
+	)
+	(wire
+		(pts
+			(xy 53.34 33.02) (xy 54.61 33.02)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f4db3b56-a950-4b0d-ace1-d833f1c0b501")
+	)
+	(wire
+		(pts
+			(xy 33.02 36.83) (xy 33.02 35.56)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f736a8bf-3cf3-44d4-a099-8e5b98c79fda")
+	)
+	(wire
+		(pts
+			(xy 43.18 36.83) (xy 43.18 35.56)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f83028c1-a7e3-4093-bca3-13d6d832d6ca")
+	)
+	(wire
+		(pts
+			(xy 81.28 35.56) (xy 81.28 36.83)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fc883a24-d6fe-4a61-b4ef-f2d032e33da1")
+	)
+	(hierarchical_label "5V"
+		(shape input)
+		(at 33.02 29.21 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "0675c199-e8de-4ad2-84c9-5ffbf96ef3c2")
+	)
+	(hierarchical_label "GND_ISO"
+		(shape output)
+		(at 101.6 36.83 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "1b0af79e-e12f-4d3a-824a-272a12d4c895")
+	)
+	(hierarchical_label "GND"
+		(shape input)
+		(at 33.02 36.83 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "287b424b-32a2-4085-8f0c-df93bc71ea31")
+	)
+	(hierarchical_label "+5V_ISO"
+		(shape output)
+		(at 101.6 29.21 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "8123781a-9284-4094-849e-532fcddf0afa")
+	)
+	(symbol
+		(lib_id "Snapeda:R05C1TF05S-R")
+		(at 67.31 33.02 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "3e514294-f146-4278-8c08-a8073971f264")
+		(property "Reference" "PS2"
+			(at 67.31 23.1084 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "R05C1TF05S-R"
+			(at 67.31 25.6484 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Snapeda:CONV_R05C1TF05S-R"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Datasheet" ""
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "1W DC/DC-Converter 'ECONOLINE' SMD 3kV reg"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MF" "Recom Power"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MAXIMUM_PACKAGE_HEIGHT" "1.28mm"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Package" "None"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Price" "None"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Check_prices" "https://www.snapeda.com/parts/R05C1TF05S-R/Recom+Power/view-part/?ref=eda"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "STANDARD" "Manufacturer Recommendations"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "PARTREV" "PRELIMINARY"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "SnapEDA_Link" "https://www.snapeda.com/parts/R05C1TF05S-R/Recom+Power/view-part/?ref=snap"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MP" "R05C1TF05S-R"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Purchase-URL" "https://www.snapeda.com/api/url_track_click_mouser/?unipart_id=15824146&manufacturer=Recom Power&part_name=R05C1TF05S-R&search_term=None"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Availability" "In Stock"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MANUFACTURER" "Recom Power"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Digikey-Part" "945-R05C1TF05S-RCT-ND"
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 67.31 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "12"
+			(uuid "e152f7e5-6c0c-4761-bb11-9c103bd9be1a")
+		)
+		(pin "4_5"
+			(uuid "8ce920da-ab72-4154-9bfb-a92eae83b072")
+		)
+		(pin "6"
+			(uuid "c38e276d-b01a-49ca-b0d0-0264c269645a")
+		)
+		(pin "8_9"
+			(uuid "32bf94f3-e6f0-47c7-9fd7-c40f80c0bbd8")
+		)
+		(pin "7"
+			(uuid "68e8c53f-838b-4b46-8725-d1e7eed30600")
+		)
+		(pin "1"
+			(uuid "8470b291-4b37-4fef-acbf-548a30ab6db9")
+		)
+		(pin "2_3"
+			(uuid "cd2dceaa-0ea9-4b89-896b-00eae799ec4a")
+		)
+		(pin "10_11"
+			(uuid "4bf63245-70e5-452b-98ec-e02b848022fa")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/25ab86f3-e93e-4598-8db1-21613320a1a6"
+					(reference "PS2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C_Small")
+		(at 101.6 33.02 0)
+		(mirror y)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "3f603f35-8978-40d9-a28f-1b084e6f5838")
+		(property "Reference" "C18"
+			(at 99.06 31.7562 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "10uF"
+			(at 99.06 34.2962 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+			(at 101.6 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 101.6 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor, small symbol"
+			(at 101.6 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "1276-1096-1-ND"
+			(at 101.6 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 101.6 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 101.6 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "316e7185-6048-4249-9554-f9c485b73d74")
+		)
+		(pin "2"
+			(uuid "1d5ac04b-638a-4699-9707-2fb3750ea5d1")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/25ab86f3-e93e-4598-8db1-21613320a1a6"
+					(reference "C18")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C_Small")
+		(at 91.44 33.02 0)
+		(mirror y)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "613a61c2-6eb2-4e52-9d5c-ae9e836f14a6")
+		(property "Reference" "C17"
+			(at 88.9 31.7562 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100nF"
+			(at 88.9 34.2962 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 91.44 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 91.44 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor, small symbol"
+			(at 91.44 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C1525"
+			(at 88.9 31.7562 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "1276-1001-1-ND"
+			(at 91.44 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 91.44 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 91.44 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "4b33b917-26fc-493d-a069-56e26e1cd982")
+		)
+		(pin "2"
+			(uuid "f3a25161-c789-4389-9362-fb6b363ff045")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/25ab86f3-e93e-4598-8db1-21613320a1a6"
+					(reference "C17")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C_Small")
+		(at 43.18 33.02 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "922f4151-e7e8-44a8-b767-b1b642722ed0")
+		(property "Reference" "C16"
+			(at 45.72 31.7562 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100nF"
+			(at 45.72 34.2962 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 43.18 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 43.18 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor, small symbol"
+			(at 43.18 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C1525"
+			(at 45.72 31.7562 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "1276-1001-1-ND"
+			(at 43.18 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 43.18 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 43.18 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "dbc7e1fb-dba1-4158-8653-b5d026ca74d4")
+		)
+		(pin "2"
+			(uuid "0684713c-630d-45c8-a349-621b26167c6f")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/25ab86f3-e93e-4598-8db1-21613320a1a6"
+					(reference "C16")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C_Small")
+		(at 33.02 33.02 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "d1e7450f-85cd-4b72-994f-839717ed0f59")
+		(property "Reference" "C15"
+			(at 35.56 31.7562 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "10uF"
+			(at 35.56 34.2962 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+			(at 33.02 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 33.02 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor, small symbol"
+			(at 33.02 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "1276-1096-1-ND"
+			(at 33.02 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 33.02 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 33.02 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "6bb682c9-f3a4-4569-b320-016d0b890c4e")
+		)
+		(pin "2"
+			(uuid "8624591d-5e42-44ec-88fd-1892914617df")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/25ab86f3-e93e-4598-8db1-21613320a1a6"
+					(reference "C15")
+					(unit 1)
+				)
+			)
+		)
+	)
+)

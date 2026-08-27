@@ -1,0 +1,2183 @@
+(kicad_sch
+	(version 20260306)
+	(generator "eeschema")
+	(generator_version "10.0")
+	(uuid "2f6854f6-ba7f-4937-81cc-99b929de041d")
+	(paper "User" 254 127)
+	(lib_symbols
+		(symbol "Converter_ACDC:IRM-03-5"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "U"
+				(at 0 6.35 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "IRM-03-5"
+				(at 0 -6.35 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Converter_ACDC:Converter_ACDC_MeanWell_IRM-03-xx_THT"
+				(at 0 -8.89 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" "https://www.meanwell.com/Upload/PDF/IRM-03/IRM-03-SPEC.PDF"
+				(at 0 -10.16 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "5V, 600mA, 3W, Isolated, AC-DC, IRM03"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "Miniature Module-type Power Supply MeanWell"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Converter*ACDC*MeanWell*IRM*03*THT*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "IRM-03-5_0_1"
+				(rectangle
+					(start -7.62 5.08)
+					(end 7.62 -5.08)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(polyline
+					(pts
+						(xy -5.334 -0.635) (xy -2.794 -0.635)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start -4.064 0.635)
+					(mid -4.699 0.2495)
+					(end -5.334 0.635)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start -4.064 0.635)
+					(mid -3.429 1.0072)
+					(end -2.794 0.635)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 5.08) (xy 0 3.81)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 2.54) (xy 0 1.27)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 0) (xy 0 -1.27)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 -2.54) (xy 0 -3.81)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.794 0.635) (xy 3.302 0.635)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.794 -0.635) (xy 5.334 -0.635)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 3.81 0.635) (xy 4.318 0.635)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 4.826 0.635) (xy 5.334 0.635)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "IRM-03-5_1_1"
+				(pin power_in line
+					(at -10.16 2.54 0)
+					(length 2.54)
+					(name "AC/L"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at -10.16 -2.54 0)
+					(length 2.54)
+					(name "AC/N"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at -7.62 0 0)
+					(length 2.54)
+					(hide yes)
+					(name "NC"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_out line
+					(at 10.16 -2.54 180)
+					(length 2.54)
+					(name "-Vo"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "14"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_out line
+					(at 10.16 2.54 180)
+					(length 2.54)
+					(name "+Vo"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "16"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "Device:C_Small"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0.254)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "C"
+				(at 0.254 1.778 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Value" "C_Small"
+				(at 0.254 -2.032 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Unpolarized capacitor, small symbol"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "capacitor cap"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "C_*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "C_Small_0_1"
+				(polyline
+					(pts
+						(xy -1.524 0.508) (xy 1.524 0.508)
+					)
+					(stroke
+						(width 0.3048)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -1.524 -0.508) (xy 1.524 -0.508)
+					)
+					(stroke
+						(width 0.3302)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "C_Small_1_1"
+				(pin passive line
+					(at 0 2.54 270)
+					(length 2.032)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 0 -2.54 90)
+					(length 2.032)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "Device:L"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "L"
+				(at -1.27 0 90)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "L"
+				(at 1.905 0 90)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Inductor"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "inductor choke coil reactor magnetic"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Choke_* *Coil* Inductor_* L_*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "L_0_1"
+				(arc
+					(start 0 2.54)
+					(mid 0.6323 1.905)
+					(end 0 1.27)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 0 1.27)
+					(mid 0.6323 0.635)
+					(end 0 0)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 0 0)
+					(mid 0.6323 -0.635)
+					(end 0 -1.27)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 0 -1.27)
+					(mid 0.6323 -1.905)
+					(end 0 -2.54)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "L_1_1"
+				(pin passive line
+					(at 0 3.81 270)
+					(length 1.27)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 0 -3.81 90)
+					(length 1.27)
+					(name "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "Snapeda:MIC23050-SYML-TR"
+			(pin_names
+				(offset 0.254)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "U"
+				(at 22.606 9.652 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.524 1.524)
+					)
+				)
+			)
+			(property "Value" "MIC23050-SYML-TR"
+				(at 22.606 7.112 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.524 1.524)
+					)
+				)
+			)
+			(property "Footprint" "Snapeda:MLF-8_ML_MCH-L"
+				(at 27.305 15.24 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" "MIC23050-SYML-TR"
+				(at 27.305 15.24 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" ""
+				(at 27.305 15.24 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "MIC23050-SYML-TR"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "MLF-8_ML_MCH MLF-8_ML_MCH-M MLF-8_ML_MCH-L"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "MIC23050-SYML-TR_0_1"
+				(pin output line
+					(at 38.1 2.54 180)
+					(length 7.62)
+					(name "SW"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 6.35 -1.27 0)
+					(length 7.62)
+					(name "EN"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 38.1 -1.27 180)
+					(length 7.62)
+					(name "SNS"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin unspecified line
+					(at 38.1 -5.08 180)
+					(length 7.62)
+					(name "CFF"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 20.32 -15.24 90)
+					(length 7.62)
+					(name "AGND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 6.35 2.54 0)
+					(length 7.62)
+					(name "VIN"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 24.13 -15.24 90)
+					(length 7.62)
+					(name "PGND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(symbol "MIC23050-SYML-TR_1_1"
+				(rectangle
+					(start 13.97 5.08)
+					(end 30.48 -7.62)
+					(stroke
+						(width 0.254)
+						(type solid)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(pin no_connect line
+					(at 5.08 -16.51 0)
+					(length 7.62)
+					(hide yes)
+					(name "NC"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin unspecified line
+					(at 24.13 -15.24 90)
+					(length 7.62)
+					(hide yes)
+					(name "9"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "9"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+	)
+	(text "5V Power Supply"
+		(exclude_from_sim no)
+		(at 44.196 34.29 0)
+		(effects
+			(font
+				(size 3 3)
+			)
+		)
+		(uuid "0eef5711-493d-4228-a948-354000ce7fb5")
+	)
+	(junction
+		(at 97.79 41.91)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "3e1ae7d5-4fdd-48b8-b1e5-1e6a3a81d0e8")
+	)
+	(junction
+		(at 140.97 45.72)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "44a65ce1-58e7-47a1-982e-3f0050a0ee79")
+	)
+	(junction
+		(at 92.71 41.91)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "5b7834bd-2d0b-4da3-9882-99b135e93726")
+	)
+	(junction
+		(at 115.57 59.69)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "60afd060-b44e-464d-99d5-8d9a2ddfbae7")
+	)
+	(junction
+		(at 140.97 41.91)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "a50299a1-7fa6-4a9d-b3e8-be42a28d8800")
+	)
+	(junction
+		(at 153.67 41.91)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "fe3a48f9-55f7-4677-8daf-424884e3cafc")
+	)
+	(wire
+		(pts
+			(xy 97.79 41.91) (xy 99.06 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "044ec98b-aa2e-41f9-865c-62dc413dffcd")
+	)
+	(wire
+		(pts
+			(xy 92.71 41.91) (xy 97.79 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0ab8cf55-feed-41b5-bd81-59bf18994cff")
+	)
+	(wire
+		(pts
+			(xy 140.97 46.99) (xy 140.97 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0d214ab8-bff2-4a6e-aa3b-e92e6ca34d5f")
+	)
+	(wire
+		(pts
+			(xy 90.17 41.91) (xy 92.71 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "331a0f96-62b1-4881-89ee-194ded153c31")
+	)
+	(wire
+		(pts
+			(xy 92.71 52.07) (xy 92.71 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3b201aec-8560-4cce-989a-71c4f3d17d20")
+	)
+	(wire
+		(pts
+			(xy 130.81 45.72) (xy 140.97 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3b63c63a-edb2-4cd7-ac18-ba36473af7fa")
+	)
+	(wire
+		(pts
+			(xy 140.97 41.91) (xy 140.97 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "41470edd-5120-4b7b-bed4-7afd076dafb5")
+	)
+	(wire
+		(pts
+			(xy 92.71 41.91) (xy 92.71 44.45)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5a671b0a-ff26-4117-8271-3cc43f778995")
+	)
+	(wire
+		(pts
+			(xy 130.81 41.91) (xy 132.08 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "633ae9a9-2fbe-43ca-96e4-011c802c6be4")
+	)
+	(wire
+		(pts
+			(xy 153.67 44.45) (xy 153.67 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "656da433-b608-452f-bc09-fa15063fea01")
+	)
+	(wire
+		(pts
+			(xy 139.7 41.91) (xy 140.97 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "66aab734-2dd0-4fef-a10e-fefc9691d31a")
+	)
+	(wire
+		(pts
+			(xy 132.08 53.34) (xy 140.97 53.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "70023679-e8f0-4b02-bd41-dfd0b65508fb")
+	)
+	(wire
+		(pts
+			(xy 130.81 49.53) (xy 132.08 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "742e3a3a-cd24-46a7-8e90-a47fe1f26352")
+	)
+	(wire
+		(pts
+			(xy 53.34 45.72) (xy 52.07 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "78835876-8f80-4cde-b8c2-037e06d85723")
+	)
+	(wire
+		(pts
+			(xy 97.79 41.91) (xy 97.79 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7ed4c0f5-99fd-4a57-8246-2737c8e66dee")
+	)
+	(wire
+		(pts
+			(xy 132.08 49.53) (xy 132.08 53.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7f3f58ca-92c0-4a24-8111-d187a5106b0e")
+	)
+	(wire
+		(pts
+			(xy 115.57 59.69) (xy 116.84 59.69)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "88a94244-7c08-43aa-9f11-e41e002c58e3")
+	)
+	(wire
+		(pts
+			(xy 153.67 49.53) (xy 153.67 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "91ac6025-f620-4bf8-b79f-26b8518af829")
+	)
+	(wire
+		(pts
+			(xy 115.57 59.69) (xy 115.57 62.23)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "925dacff-2803-4c8a-a9e5-993ebc05ea29")
+	)
+	(wire
+		(pts
+			(xy 113.03 59.69) (xy 115.57 59.69)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9f3eef4b-1873-4af3-b0ec-bea58c8b3ed9")
+	)
+	(wire
+		(pts
+			(xy 97.79 45.72) (xy 99.06 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c3cb435f-a442-4c3d-aa83-17b7c051dc4f")
+	)
+	(wire
+		(pts
+			(xy 53.34 41.91) (xy 69.85 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d62c14ba-6a65-49a8-b473-b2df6e6377fa")
+	)
+	(wire
+		(pts
+			(xy 52.07 50.8) (xy 57.15 50.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d6587340-1723-4215-8aa6-a9a28e351bc7")
+	)
+	(wire
+		(pts
+			(xy 53.34 41.91) (xy 53.34 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "dd40fd70-bc16-49f8-ac48-7b41ba046df8")
+	)
+	(wire
+		(pts
+			(xy 140.97 53.34) (xy 140.97 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e62322d9-f1d9-418f-a7e1-5e552270aa13")
+	)
+	(wire
+		(pts
+			(xy 153.67 41.91) (xy 157.48 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "eb9805f0-cd27-44aa-b019-b29cc9ff83ad")
+	)
+	(wire
+		(pts
+			(xy 30.48 50.8) (xy 31.75 50.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f5056afa-2c2c-4603-a8a5-a5be46612606")
+	)
+	(wire
+		(pts
+			(xy 140.97 41.91) (xy 153.67 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f561d7d1-331f-41dd-9706-81307ec6b32f")
+	)
+	(wire
+		(pts
+			(xy 30.48 45.72) (xy 31.75 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f5a2fd2e-cb59-439b-b177-17c7981faaf5")
+	)
+	(hierarchical_label "GND"
+		(shape input)
+		(at 92.71 52.07 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "2d1bc3a5-00b3-4f25-b1d2-357e4b0041d2")
+	)
+	(hierarchical_label "5V"
+		(shape output)
+		(at 90.17 41.91 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "346163b3-efa5-4e1b-8f9f-c1ed6379ecfe")
+	)
+	(hierarchical_label "GND"
+		(shape input)
+		(at 115.57 62.23 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "4e8d3703-3599-481d-a2d9-67ddcbeb3531")
+	)
+	(hierarchical_label "NEUTRAL"
+		(shape input)
+		(at 30.48 50.8 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "54cfaf95-3365-4c2f-a0c5-fcd459e4a474")
+	)
+	(hierarchical_label "GND"
+		(shape input)
+		(at 57.15 50.8 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "54dfa219-f653-4a40-94ee-f5cff5d9cb3a")
+	)
+	(hierarchical_label "5V"
+		(shape output)
+		(at 69.85 41.91 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "9db23792-7bf8-461d-895a-a62c0f8fd744")
+	)
+	(hierarchical_label "GND"
+		(shape input)
+		(at 153.67 52.07 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "a2c99fbe-e4e8-420b-9963-2195f5a0b92d")
+	)
+	(hierarchical_label "3.3V"
+		(shape output)
+		(at 157.48 41.91 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "b777c7e7-e63c-4cf5-a4b6-63c9da30bdcd")
+	)
+	(hierarchical_label "LINE"
+		(shape input)
+		(at 30.48 45.72 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "e8c8aebb-8542-442e-9287-e7cc09e57a33")
+	)
+	(netclass_flag ""
+		(length 2.54)
+		(shape round)
+		(at 55.88 41.91 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "3a95feb2-5c3d-4502-b069-6f02de2c2134")
+		(property "Netclass" "1A"
+			(at 56.5785 39.37 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Component Class" ""
+			(at 56.5785 40.8305 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+					(italic yes)
+				)
+				(justify left)
+			)
+		)
+	)
+	(netclass_flag ""
+		(length 2.54)
+		(shape round)
+		(at 149.86 41.91 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "551dd9e6-2274-4f77-970f-934fd1a39cf8")
+		(property "Netclass" "1A"
+			(at 150.5585 39.37 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Component Class" ""
+			(at 150.5585 40.8305 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+					(italic yes)
+				)
+				(justify left)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C_Small")
+		(at 140.97 49.53 0)
+		(mirror x)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "01285bf8-fe3f-4788-a224-ab1529bac08d")
+		(property "Reference" "C9"
+			(at 143.51 50.7938 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "520pF"
+			(at 143.51 48.2538 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 140.97 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 140.97 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor, small symbol"
+			(at 140.97 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C1630"
+			(at 143.51 50.7938 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "490-3238-1-ND"
+			(at 140.97 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 140.97 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 140.97 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "bc528ffb-9ee2-4379-8267-f96f3700dd96")
+		)
+		(pin "1"
+			(uuid "8123654e-07fe-408d-a73f-c56df44dfe94")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/e2de7061-6de8-48c3-a0f9-4b42af72e0fe"
+					(reference "C9")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:L")
+		(at 135.89 41.91 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "1bdc5a44-ad69-4a17-a68c-bef5b6be594e")
+		(property "Reference" "L1"
+			(at 133.35 36.83 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "2.2uH"
+			(at 133.35 39.37 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Inductor_SMD:L_1008_2520Metric"
+			(at 135.89 41.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/7204/BDCD_series.pdf?_gl=1*1sxxgkg*_up*MQ..*_gs*MQ..&gclid=CjwKCAjwx7LSBhB3EiwAjcodxI7aFkTr5FxlaavG2HO1dfbvPVJhxX1Q0aexXIv9bva91gJcfIFx7hoCMiMQAvD_BwE&gclsrc=aw.ds"
+			(at 135.89 41.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 133.35 39.37 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "LCSC" "C89446"
+			(at 133.35 34.29 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "553-BDCD002520122R2MS1CT-ND"
+			(at 135.89 41.91 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 135.89 41.91 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 135.89 41.91 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "39f65c7f-2db4-4e26-9068-8f3acadb6efc")
+		)
+		(pin "1"
+			(uuid "b0796299-800f-48af-a7f5-3c8c5a040485")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/e2de7061-6de8-48c3-a0f9-4b42af72e0fe"
+					(reference "L1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Converter_ACDC:IRM-03-5")
+		(at 41.91 48.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "48e994ed-3487-4b89-9ebd-d7d657f3860c")
+		(property "Reference" "U2"
+			(at 41.91 38.1 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "IRM-03-5"
+			(at 41.91 40.64 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Converter_ACDC:Converter_ACDC_MeanWell_IRM-03-xx_THT"
+			(at 41.91 57.15 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.meanwell.com/Upload/PDF/IRM-03/IRM-03-SPEC.PDF"
+			(at 41.91 58.42 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "5V, 600mA, 3W, Isolated, AC-DC, IRM03"
+			(at 41.91 48.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C6969425"
+			(at 41.91 38.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "1866-3020-ND"
+			(at 41.91 48.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 41.91 48.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 41.91 48.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "3"
+			(uuid "6c9874a1-8d0a-4439-9794-20656bb11181")
+		)
+		(pin "14"
+			(uuid "8286945b-5d08-4c48-af57-d92216a716f1")
+		)
+		(pin "5"
+			(uuid "01072016-4273-4d70-8117-57e4c3ec491f")
+		)
+		(pin "1"
+			(uuid "af5c81d1-2ad1-4aa5-9339-8eabe4313a84")
+		)
+		(pin "16"
+			(uuid "4b9d5ad4-4e94-4400-8216-5691484548b8")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/e2de7061-6de8-48c3-a0f9-4b42af72e0fe"
+					(reference "U2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Snapeda:MIC23050-SYML-TR")
+		(at 92.71 44.45 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "4f3a7deb-3ed2-469c-8b58-6e4e391cd8b2")
+		(property "Reference" "U1"
+			(at 114.935 34.29 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.524 1.524)
+				)
+			)
+		)
+		(property "Value" "MIC23050-SYML-TR"
+			(at 114.935 36.83 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.524 1.524)
+				)
+			)
+		)
+		(property "Footprint" "Snapeda:MLF-8_ML_MCH-L"
+			(at 120.015 29.21 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "MIC23050-SYML-TR"
+			(at 120.015 29.21 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 120.015 29.21 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "576-3351-1-ND"
+			(at 92.71 44.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "6"
+			(uuid "ab3e804e-19e5-4519-a9b6-2d42bce8ada8")
+		)
+		(pin "7"
+			(uuid "43ec18a4-e1d6-4839-8657-dd10d70dfc89")
+		)
+		(pin "1"
+			(uuid "cec350f5-b31d-4839-8a8c-7e2ee5461e75")
+		)
+		(pin "8"
+			(uuid "eca893a6-2f08-4dc2-9af3-9766608ea8d7")
+		)
+		(pin "5"
+			(uuid "dadac606-e0c3-40cf-bd1f-5b60445e718f")
+		)
+		(pin "2"
+			(uuid "500bba85-8358-42fd-a0a7-4363eade2dad")
+		)
+		(pin "4"
+			(uuid "e7f85be1-81de-45d8-9dd0-d7605cca47be")
+		)
+		(pin "9"
+			(uuid "b15f1204-51b9-48ab-93d7-35b1908655ee")
+		)
+		(pin "3"
+			(uuid "d5b31da6-a752-471c-8c7c-364831f9d3e4")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/e2de7061-6de8-48c3-a0f9-4b42af72e0fe"
+					(reference "U1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C_Small")
+		(at 92.71 46.99 0)
+		(mirror y)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "888d7c0d-2cae-4c4d-aa37-01de71bf990c")
+		(property "Reference" "C2"
+			(at 90.17 45.7262 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "4.7uF"
+			(at 90.17 48.2662 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 92.71 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 92.71 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor, small symbol"
+			(at 92.71 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C23733"
+			(at 90.17 45.7262 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "490-GRM155C61E475ME15DCT-ND"
+			(at 92.71 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 92.71 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 92.71 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "d192c7a7-29fc-44af-873f-329cd7f98a28")
+		)
+		(pin "1"
+			(uuid "78dd8d9f-50f7-47de-96e6-4c4db86ad8ba")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/e2de7061-6de8-48c3-a0f9-4b42af72e0fe"
+					(reference "C2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C_Small")
+		(at 153.67 46.99 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "b7343cc7-b5f8-4aff-a830-cf950d847bb1")
+		(property "Reference" "C10"
+			(at 156.21 45.7262 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "22uF"
+			(at 156.21 48.2662 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+			(at 153.67 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 153.67 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor, small symbol"
+			(at 153.67 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C45783"
+			(at 156.21 45.7262 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "1276-CL21A226MAYNNWECT-ND"
+			(at 153.67 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 153.67 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 153.67 46.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "809dbd8e-5de8-4b34-a960-ac743554310e")
+		)
+		(pin "1"
+			(uuid "0b85d160-ea06-42e4-8848-d406079bbd68")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/e2de7061-6de8-48c3-a0f9-4b42af72e0fe"
+					(reference "C10")
+					(unit 1)
+				)
+			)
+		)
+	)
+)

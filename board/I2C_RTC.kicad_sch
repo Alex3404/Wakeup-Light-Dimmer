@@ -1,0 +1,899 @@
+(kicad_sch
+	(version 20260306)
+	(generator "eeschema")
+	(generator_version "10.0")
+	(uuid "29f5df21-126f-4fa7-9c58-d601494094dc")
+	(paper "A4")
+	(lib_symbols
+		(symbol "Device:Crystal_Small"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "Y"
+				(at 0 2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "Crystal_Small"
+				(at 0 -2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Two pin crystal, small symbol"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "quartz ceramic resonator oscillator"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Crystal*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "Crystal_Small_0_1"
+				(polyline
+					(pts
+						(xy -1.27 -0.762) (xy -1.27 0.762)
+					)
+					(stroke
+						(width 0.381)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -0.762 -1.524)
+					(end 0.762 1.524)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 -0.762) (xy 1.27 0.762)
+					)
+					(stroke
+						(width 0.381)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "Crystal_Small_1_1"
+				(pin passive line
+					(at -2.54 0 0)
+					(length 1.27)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 2.54 0 180)
+					(length 1.27)
+					(name "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "Timer_RTC:PCF85063ATL"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "U"
+				(at -10.16 8.89 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "PCF85063ATL"
+				(at 6.35 -8.89 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Package_DFN_QFN:DFN-10-1EP_2.6x2.6mm_P0.5mm_EP1.3x2.2mm"
+				(at 0 20.32 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" "https://www.nxp.com/docs/en/data-sheet/PCF85063A.pdf"
+				(at 0 -20.32 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "I2C Real-Time Clock Calendar w/ Alarm, DFN-10"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "RTC I2C"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "DFN*2.6x2.6mm*P0.5mm*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "PCF85063ATL_0_1"
+				(rectangle
+					(start -10.16 7.62)
+					(end 10.16 -7.62)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+			)
+			(symbol "PCF85063ATL_1_1"
+				(pin input line
+					(at -12.7 -2.54 0)
+					(length 2.54)
+					(name "OSCI"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at -12.7 -5.08 0)
+					(length 2.54)
+					(name "OSCO"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -12.7 0 0)
+					(length 2.54)
+					(name "CLKOE"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 12.7 2.54 180)
+					(length 2.54)
+					(name "~{INT}"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 0 -10.16 90)
+					(length 2.54)
+					(name "VSS"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -12.7 2.54 0)
+					(length 2.54)
+					(name "SDA"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -12.7 5.08 0)
+					(length 2.54)
+					(name "SCL"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at 10.16 5.08 180)
+					(length 2.54)
+					(hide yes)
+					(name "NC"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 12.7 0 180)
+					(length 2.54)
+					(name "CLKOUT"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "9"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 0 10.16 270)
+					(length 2.54)
+					(name "VDD"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "10"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+	)
+	(no_connect
+		(at 64.77 48.26)
+		(uuid "3b1b5c6d-d55b-4413-8ca3-5b682f3e6cbf")
+	)
+	(no_connect
+		(at 39.37 48.26)
+		(uuid "4b494860-cea3-4ae6-b545-112cd64eb8da")
+	)
+	(wire
+		(pts
+			(xy 30.48 54.61) (xy 30.48 55.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "059e779c-6a8e-4222-b4f9-5b396cae8531")
+	)
+	(wire
+		(pts
+			(xy 52.07 58.42) (xy 52.07 59.69)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0886369c-d937-464f-a636-4e1882d757a4")
+	)
+	(wire
+		(pts
+			(xy 30.48 55.88) (xy 36.83 55.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0c05fdea-120e-44d0-af3a-a6dd32c569f6")
+	)
+	(wire
+		(pts
+			(xy 30.48 48.26) (xy 36.83 48.26)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1cba2e12-4a9a-4429-829f-a9480d367850")
+	)
+	(wire
+		(pts
+			(xy 52.07 36.83) (xy 52.07 38.1)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3f4d1ad4-0771-4d67-a863-a8d750c78e0c")
+	)
+	(wire
+		(pts
+			(xy 36.83 48.26) (xy 36.83 50.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "472c98b6-0ea9-4f06-adc5-071a6de9ff7c")
+	)
+	(wire
+		(pts
+			(xy 38.1 43.18) (xy 39.37 43.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "763a17db-8789-447d-ac5b-727d11fbce4e")
+	)
+	(wire
+		(pts
+			(xy 36.83 55.88) (xy 36.83 53.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "77962880-d859-4e26-a022-842c5ff2d150")
+	)
+	(wire
+		(pts
+			(xy 30.48 48.26) (xy 30.48 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8fa47e5a-7a6b-40a3-a0c9-3f5f685cacf3")
+	)
+	(wire
+		(pts
+			(xy 38.1 45.72) (xy 39.37 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ad07f5bb-9dab-4b1f-8bb2-126b8c6ea2b0")
+	)
+	(wire
+		(pts
+			(xy 36.83 53.34) (xy 39.37 53.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c797d91f-3bb3-455c-9cad-67796f05b7e8")
+	)
+	(wire
+		(pts
+			(xy 66.04 45.72) (xy 64.77 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "cd3bff3e-13e5-4078-8c94-2501925212e5")
+	)
+	(wire
+		(pts
+			(xy 36.83 50.8) (xy 39.37 50.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e0e4a6de-070d-4926-9795-505e37cce942")
+	)
+	(hierarchical_label "GND"
+		(shape input)
+		(at 52.07 59.69 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "15dbaa98-281b-4ae7-b73f-4c208880412b")
+	)
+	(hierarchical_label "SCL"
+		(shape input)
+		(at 38.1 43.18 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "8a963649-890a-459d-abc2-06631fb62cef")
+	)
+	(hierarchical_label "SDA"
+		(shape input)
+		(at 38.1 45.72 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "8d7faac1-3181-408f-ab37-5c0af291ccc2")
+	)
+	(hierarchical_label "~{ALARM_INT}"
+		(shape input)
+		(at 66.04 45.72 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "c5f95c83-0a7d-4cda-bdf1-0fc856e2b495")
+	)
+	(hierarchical_label "VDD"
+		(shape input)
+		(at 52.07 36.83 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "e65eba80-532a-4b7f-9f7f-c79e3202a469")
+	)
+	(symbol
+		(lib_id "Timer_RTC:PCF85063ATL")
+		(at 52.07 48.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "4d079c44-bca7-4307-9464-52e15b334278")
+		(property "Reference" "U6"
+			(at 54.2133 35.56 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "PCF85063ATL"
+			(at 54.2133 38.1 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Package_DFN_QFN:DFN-10-1EP_2.6x2.6mm_P0.5mm_EP1.3x2.2mm"
+			(at 52.07 27.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.nxp.com/docs/en/data-sheet/PCF85063A.pdf"
+			(at 52.07 68.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "I2C Real-Time Clock Calendar w/ Alarm, DFN-10"
+			(at 52.07 48.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "568-10235-1-ND"
+			(at 52.07 48.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 52.07 48.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 52.07 48.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "6"
+			(uuid "e36a67a2-7b78-4999-9852-f11bd5ca88ad")
+		)
+		(pin "4"
+			(uuid "4b1a308e-c6d4-4542-9955-e223f421565e")
+		)
+		(pin "1"
+			(uuid "1333accc-7c45-468a-bdee-2c196d00662b")
+		)
+		(pin "3"
+			(uuid "edbd7a60-8f0c-4318-9568-e8d9ecc31f14")
+		)
+		(pin "2"
+			(uuid "5ef4c039-3010-4ed6-99ce-e3059bb0a333")
+		)
+		(pin "5"
+			(uuid "b1c262b7-80d4-4ac4-b2c1-7bcc544727bd")
+		)
+		(pin "10"
+			(uuid "93349e94-52da-4242-bd88-3affa8df3032")
+		)
+		(pin "9"
+			(uuid "cd0d6973-3cc8-4352-b311-12948795f344")
+		)
+		(pin "8"
+			(uuid "785e68ba-082d-4476-b966-593b77af0e45")
+		)
+		(pin "7"
+			(uuid "15fdf843-9c48-4c7f-87e7-05fb6a7e8352")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/9651e759-edb3-48e6-8bb1-553c0a773a97"
+					(reference "U6")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:Crystal_Small")
+		(at 30.48 52.07 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "75a4c80d-6b9c-41d6-b79c-1f76c49371c5")
+		(property "Reference" "Y2"
+			(at 27.94 50.7999 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "Crystal_Small"
+			(at 27.94 53.3399 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Crystal:Crystal_SMD_MicroCrystal_CM9V-T1A-2Pin_1.6x1.0mm"
+			(at 30.48 52.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 30.48 52.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Two pin crystal, small symbol"
+			(at 30.48 52.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Digikey-Part" "2195-CM9V-T1A-32.768KHZ-7PF-20PPM-TA-QCCT-ND"
+			(at 30.48 52.07 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Name" ""
+			(at 30.48 52.07 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" ""
+			(at 30.48 52.07 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "404ee5e5-9f06-4bc6-9304-310449e85711")
+		)
+		(pin "2"
+			(uuid "98cf56cf-290e-455f-891a-dcd08059759e")
+		)
+		(instances
+			(project "SmartDimmer"
+				(path "/3bf521da-b21a-4620-b371-58542d2752a5/9651e759-edb3-48e6-8bb1-553c0a773a97"
+					(reference "Y2")
+					(unit 1)
+				)
+			)
+		)
+	)
+)
