@@ -20,7 +20,7 @@ Currently I'm still working on this project as a solo adventure. If you have iss
 * MOSFET AC Dimming for LCD bulbs
 * LiPo battery backup for RTC with intergrated battery charger
 
-I'm also working on the firmware currently I am striving towards getting WIFI and bluethooth to work, then after that I'd love to focus on an Phone application inorder to configure alarm times, and other options exposed though either WIFI or Bluetooth. I'm leaning towards Bluetooth because we don't need another insecure WiFi IoT device, no matter how confident I am with the security. I'm not a professional and securing my WiFi layer is a small priority.
+I'm also working on the firmware currently I am striving towards getting WIFI and bluethooth to work, then after that I'd love to focus on an Phone application inorder to configure alarm times, and other options exposed though either WIFI or Bluetooth. I'm leaning towards Bluetooth due to WiFi insecurities relating to IoT devices. Supporting only bluetooth should reduce the attack vector.
 
 ## Video Showcase
 [![Showcase Video](https://img.youtube.com/vi/jobSFEIKs34/0.jpg)](https://www.youtube.com/watch?v=jobSFEIKs34)
